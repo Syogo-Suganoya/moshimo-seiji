@@ -1,39 +1,44 @@
 # 進捗と引き継ぎ
 
-更新：2026-09-26
+更新：2026-09-26（エンジン移行後）
 
 新しいセッションは、まずこのファイルと [design.md](design.md) を読んでから始める。
 
 ## いまの状態
-- 画面のモック（`mock/`）はひととおり動く。ビルド不要のHTML1枚と、公約データのJS2本。
-- 設計書（`docs/design.md`）は今のモックの仕様に合わせて更新済み。
-- このリポジトリは `2605_hackathon/moshimo-seiji` から移した。**まだコミットしていない**。
+- 画面のモック（`mock/`）はひととおり動く。公約データは `data/*.json` から読む（`mock/data` は `../data` へのシンボリックリンク）。
+- 公約・政党・ゲームのパラメータは `data/` のJSONが正本。
+- 計算ロジックは `engine/`（TypeScript）に移した。テスト27件が通る。モックと同じ入力で同じ支持率になることを確認済み。
+- 設計書（`docs/design.md`）はモックの仕様に合わせてあるが、構成（8節）はまだ古い。
 
 ## 決めたこと
-- **ベータ版はクロードスキルとして先に出す。** 画面とAPIを作るのに時間がかかるため。Web版はそのあと。
-- **リポジトリは1つにまとめ、中をディレクトリで分ける。** 公約データと計算ロジックをスキル版とWeb版で共有し、数値がずれないようにする。
-- 将来、Web版を非公開や有料にすると決めたら、そのときに `web/` を別のリポジトリへ切り出す。
+- **AIは Gemini API を使う。** キーはサーバー側だけに置く。
+- **Web版とClaudeスキル版の両方を残す。** 公約データと計算ロジックを両方で共有し、数値がずれないようにする。
+- **Web版は Next.js（TypeScript）。** 計算ロジックも TypeScript にして、画面・サーバー・スキルで同じコードを使う。スキル版には `engine/` を1ファイルのJSにまとめて渡し、`node` で動かす。
+- **数値はエンジンで確定させる。** Gemini は、公約に当たらない自由な表明への反応（セリフと素の値）だけを作る。値はエンジンが範囲に収め（1行±10、5行まで、コスト1〜3）、心理効果を通して適用する。
+- リポジトリは1つ。将来 Web版を非公開や有料にすると決めたら、そのときに `web/` を別のリポジトリへ切り出す。
 
 ## 次にやること
-1. 最初のコミット（`docs/` と `mock/`、`.claude/launch.json`）。
-2. ディレクトリを次の形に分ける。
-   ```
-   moshimo-seiji/
-     data/                  公約・属性・パラメータ（JSON。正本はここだけ）
-     engine/                計算ロジック（Python）とテスト
-     skill/moshimo-seiji/   SKILL.md, scripts/, data/（data/ はビルドでコピー）
-     web/                   今の mock/ を移す → 将来のWeb版
-     docs/
-     scripts/build_skill.sh data/ と engine/ をスキルのフォルダへコピー
-   ```
-3. `mock/data/ldp_policies.js` と `mock/data/parties.js` を JSON にして `data/` に置く。モックもJSONを読むように直す。
-4. 計算ロジックを `engine/`（Python）に移す。対象は `mock/index.html` の `transformFx`、`applyFx`、`framing`、`endQuarter`、`startElection`、失脚判定。数値はLLMに計算させず、スクリプトで確定させる。
-5. スキルの雛形を作る。
-   - `SKILL.md`：ルール、ターンの進め方、キャラクターの口調、公平性の指示（実在の政党を扱うので「フィクションのシミュレーション」と必ず明示する）。
-   - `scripts/`：`engine.py` を呼ぶ入口（新規ゲーム、表明、ターン終了、選挙）。
-   - 状態はターンごとに `state.json` へ保存し、会話の文脈に頼らない。
-   - ターンの終わりに、街と支持率をHTMLで表示できるとよい（モックの見た目を流用）。
-6. スキルとしてClaudeで遊んでみて、バランスと口調を調整する。
+1. `web/` に Next.js を作る。画面はモックを React に移す。エンジンはブラウザで動かし、状態は localStorage に保存する。
+2. Gemini の API Route（`web/app/api/react/route.ts`）。表明文・支持率・話者一覧を渡し、JSON（`title`, `cat`, `cost`, `reactions[]`）で返させる。`sanitizeFreeform` で範囲に収めてから `declare(state, text, { freeform })` に渡す。キーがないときは今のキーワード方式だけで動く（モックモード）。
+3. スキルの雛形（`skill/moshimo-seiji/`）。`SKILL.md`、`scripts/`（エンジンをまとめたJSを呼ぶ入口）、`state.json` への保存。公平性の指示（実在の政党を扱うので「フィクションのシミュレーション」と明示）。
+4. `scripts/build_skill.sh`：`data/` とエンジンをまとめたJSをスキルのフォルダへコピーする。
+5. design.md の8節（構成）を今の決定に合わせて書き直す。
+6. 遊んでみて、バランスと口調を調整する。
+
+## エンジン（`engine/src`）
+| 関数 | 中身 |
+|---|---|
+| `newGame(seed)` | 新しいゲーム。乱数のシードは状態の中に持つ |
+| `matchPolicy(text)` | 表明文を公約・その他の政策と照合 |
+| `declare(state, text, {freeform})` | 政策表明。支持率・信頼・連立・ツケ・危機と陳情を更新 |
+| `respondQuest(state, id, accept)` | 陳情に約束する／断る |
+| `endQuarter(state)` | ターン終了。`continue` / `resign` / `election` を返す |
+| `runElection(state)` | 選挙（任期満了・解散とも） |
+| `news(state, opts)` | 新聞の中身 |
+| `summary(state)` | 失脚後の称号とスコア |
+| `sanitizeFreeform(p)` | Gemini の出力をゲームの範囲に収める |
+
+どの関数も状態をコピーして返し、渡した状態は書き換えない。状態はJSONにそのまま保存できる。
 
 ## ゲームの仕様（要点。詳しくは design.md）
 - 1ターンは四半期。開始は2026年。在任期間を競う。
@@ -46,9 +51,11 @@
 ## ファイル
 | パス | 中身 |
 |---|---|
-| `mock/index.html` | 画面のモック一式（タイトル、公約ブック、新聞、メイン、選挙、ゲームオーバー） |
-| `mock/data/ldp_policies.js` | 自民党の公約15件（反応のセリフ付き） |
-| `mock/data/parties.js` | 11政党の情報と、10政党の公約45件 |
+| `data/policies.json` | 公約60件（自民党15件は反応のセリフ付き、他の10政党45件は fx からセリフを作る） |
+| `data/parties.json` | 11政党の情報と出典 |
+| `data/game.json` | 属性、初期値、補正の係数、選挙、話者、危機・陳情、その他の政策などのパラメータ |
+| `engine/` | 計算ロジック（TypeScript）とテスト。`npm test` |
+| `mock/index.html` | 画面のモック一式（タイトル、公約ブック、新聞、メイン、選挙、ゲームオーバー）。ロジックはまだ中に直接書いてある |
 | `docs/design.md` | 設計書（類似ゲームの調査、属性、補正のモデル、選挙、失脚） |
 | `docs/background_prompts.md` | 背景7パターンの画像生成プロンプト |
 | `docs/promo_x_4koma.md` | Xの予告プロモーション（各党の「公約と結末」4コマと画像生成プロンプト） |
@@ -57,11 +64,14 @@
 ```
 python3 -m http.server 8933 --directory mock
 ```
-http://localhost:8933/ を開く。古いJSが残るときは `?v=26` のように数字を変える。data の script タグにも `?v=` を付けているので、データを変えたら数字を上げる。
+http://localhost:8933/ を開く。データを変えたら、`mock/index.html` の読み込み処理にある `?v=` の数字を上げる。
 
-Claudeのプレビューからは `.claude/launch.json` の `moshimo-mock` で起動できる。
+Claudeのプレビューからは `.claude/launch.json` の `moshimo-mock` で起動できる。8933が埋まっていれば空いているポートを使う。
+
+テスト：ルートで `npm install` のあと `npm test`。
 
 ## 注意
-- 前のセッションでは、プレビューが古いリポジトリ（`2605_hackathon`）の `.claude/launch.json` を読んでいた。そこに、このフォルダの `mock` を絶対パスで指す `moshimo-mock` を仮で入れてある。新しいセッションでこのリポジトリの設定から起動できたら、古いほうの `moshimo-mock` は消してよい。
+- 古いリポジトリ（`2605_hackathon`）の `.claude/launch.json` に、このフォルダの `mock` を指す `moshimo-mock` が仮で入っている。このリポジトリの設定から起動できることは確認したので、古いほうは消してよい。
+- モックの中の危機・陳情やその他の政策は、まだ `data/game.json` と二重に持っている。Web版に移したらモックごと消す。
 - `file://` で開くと外部のJSが読み込まれない。必ずローカルサーバーで開く。
 - モックの地方化の背景では、ビルが低くなって「経済団体」のアイコンが少し浮いて見える。本番の画像で構図をそろえれば解消する前提。

@@ -1,0 +1,132 @@
+{
+  "asOf": "2026-09-26",
+  "sources": [
+    {
+      "label": "第51回衆院選（2026/2/8投開票）各党公約：日本経済新聞「衆議院選挙2026 各政党の公約一覧」",
+      "url": "https://www.nikkei.com/special/election/manifesto"
+    },
+    {
+      "label": "政治データベース「政党公約比較 2026年衆院選」",
+      "url": "https://seiji-db.jp/manifestos/"
+    },
+    {
+      "label": "Pontaポイントコラム「2026年衆院選 各党の選挙公約を比較」",
+      "url": "https://column.finance.ponta.jp/archives/680/"
+    },
+    {
+      "label": "議席：第51回衆院選の結果",
+      "url": "https://ja.wikipedia.org/wiki/第51回衆議院議員総選挙"
+    },
+    {
+      "label": "政党の動き：中道改革連合",
+      "url": "https://ja.wikipedia.org/wiki/中道改革連合"
+    }
+  ],
+  "notes": [
+    "seats は第51回衆院選の結果。bloc は ruling（与党）か opp（野党）。",
+    "中道改革連合は2026年9月に分裂（公明党系は公明党へ復党、立憲系は「民主改革の会」を結成）。公明党・民主改革の会には独自の新公約がまだないため、衆院選時の中道改革連合の公約を引き継ぐ扱い。"
+  ],
+  "parties": [
+    {
+      "id": "ldp",
+      "name": "自由民主党",
+      "short": "自民",
+      "color": "#e0473f",
+      "seats": 316,
+      "bloc": "ruling",
+      "source": "2026 衆院選公約・施政方針"
+    },
+    {
+      "id": "ishin",
+      "name": "日本維新の会",
+      "short": "維新",
+      "color": "#3fae5a",
+      "seats": 36,
+      "bloc": "ruling",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "chudo",
+      "name": "中道（公明党・民主改革の会）",
+      "short": "中道",
+      "color": "#4a7fd9",
+      "seats": 49,
+      "bloc": "opp",
+      "source": "2026 衆院選公約（中道改革連合）",
+      "note": "衆院選時は中道改革連合。2026年9月に分裂し、公明党と民主改革の会に。衆院では「中道」会派を結成"
+    },
+    {
+      "id": "dpfp",
+      "name": "国民民主党",
+      "short": "国民",
+      "color": "#f5b82e",
+      "seats": 28,
+      "bloc": "opp",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "sansei",
+      "name": "参政党",
+      "short": "参政",
+      "color": "#ff8a3d",
+      "seats": 15,
+      "bloc": "opp",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "mirai",
+      "name": "チームみらい",
+      "short": "みらい",
+      "color": "#35c1c9",
+      "seats": 11,
+      "bloc": "opp",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "jcp",
+      "name": "日本共産党",
+      "short": "共産",
+      "color": "#c43a5a",
+      "seats": 4,
+      "bloc": "opp",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "reiwa",
+      "name": "れいわ新選組",
+      "short": "れいわ",
+      "color": "#e75fa8",
+      "seats": 1,
+      "bloc": "opp",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "hoshu",
+      "name": "日本保守党",
+      "short": "保守",
+      "color": "#6b7bd6",
+      "seats": 0,
+      "bloc": "opp",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "sdp",
+      "name": "社会民主党",
+      "short": "社民",
+      "color": "#4db3e6",
+      "seats": 0,
+      "bloc": "opp",
+      "source": "2026 衆院選公約"
+    },
+    {
+      "id": "genzei",
+      "name": "減税日本・ゆうこく連合",
+      "short": "減税",
+      "color": "#a08457",
+      "seats": 1,
+      "bloc": "opp",
+      "source": "—",
+      "note": "公約データ未収録"
+    }
+  ]
+}
