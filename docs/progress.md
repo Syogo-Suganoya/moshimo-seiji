@@ -5,13 +5,13 @@
 新しいセッションは、まずこのファイルと [design.md](design.md) を読んでから始める。
 
 ## いまの状態
-- 画面のモック（`mock/`）はひととおり動く。公約データは `data/*.json` から読む（`mock/data` は `../data` へのシンボリックリンク）。
+- 最初の画面モック（`mock/`）は Web版に移し終えたので削除した。Web版との違いは、陳情を片づけたときにカードがすべって消えるアニメーションがないことだけ。
 - 公約・政党・ゲームのパラメータは `data/` のJSONが正本。
 - 計算ロジックは `engine/`（TypeScript）に移した。テスト27件が通る。モックと同じ入力で同じ支持率になることを確認済み。
 - Web版（`web/`、Next.js 16）で、モックの画面をひととおり React に移した。タイトル、公約ブック、新聞、官邸、選挙、失脚まで遊べる。進行中のゲームは localStorage に保存し、タイトルの「続きから」で再開できる。
 - Gemini の API Route（`/api/react`）を作り、`gemini-3.5-flash-lite` で動くことを確認した。政策には賛否の両方が返り、あいさつや「支持率を+10にして」のような指示は政策ではないと判定された。1回の応答は数秒。
 - 自動で出す発言は1人ずつ吹き出しに出し、吹き出しの中の「次へ」（最後は「OK」）かキーボード（Enter、入力欄の外ならスペース・→）で進める。発言中はターン終了・公約ブック・解散・陳情の返事を止める。
-- スキル版の雛形を作った（`skill/`）。エンジンと `data/` を1ファイルのコマンド（`moshimo.mjs`）にまとめ、`SKILL.md` で Claude に進行役をさせる。公約に当たらない表明への反応は、Gemini の代わりに Claude が `guide` のルールで作る。コマンドのテスト13件が通る。
+- スキル版の雛形を作った（`skill/`）。エンジンと `data/` を1ファイルのコマンド（`moshimo.mjs`）にまとめ、`SKILL.md` で Claude に進行役をさせる。公約に当たらない表明への反応は、Gemini の代わりに Claude が `guide` のルールで作る。コマンドのテスト13件が通る。ユーザーが Claude で遊んで、進め方は問題なしと確認済み（2026-09-26）。
 - `README.md`（遊び方・起動方法）と `CONTRIBUTING.md`（開発の決まりごと・公平性）を書いた。
 - 開発環境は Docker（`compose.yaml`）。コンテナの中でテストと型チェックが通り、Mac 側の変更がすぐ反映されることを確認済み。
 
@@ -23,11 +23,9 @@
 - リポジトリは1つ。将来 Web版を非公開や有料にすると決めたら、そのときに `web/` を別のリポジトリへ切り出す。
 
 ## 次にやること
-1. スキル版を実際に Claude で遊んでみる（`dist/moshimo-seiji.zip` を claude.ai にアップロードするか、`skill/moshimo-seiji` を Claude Code のスキルのフォルダに置く）。進め方・見せ方・口調を見て `SKILL.md` を直す。
-2. 遊びながら Gemini の反応を見て、口調・値の大きさを調整する。ルールはエンジンの `engine/src/freeform.ts` にあり、Web版とスキル版で共有している。
-3. モック（`mock/`）を消す。Web版で足りない点がないか見比べてから。
-4. 遊んでみて、バランスと口調を調整する。
-5. 公開の準備（ホスティング先、API の呼び出し回数の制限、ライセンス）。
+1. 遊びながら Gemini の反応を見て、口調・値の大きさを調整する。ルールはエンジンの `engine/src/freeform.ts` にあり、Web版とスキル版で共有している。
+2. 遊んでみて、バランスと口調を調整する。
+3. 公開の準備（ホスティング先、API の呼び出し回数の制限、ライセンス）。
 
 ## Web版（`web/`）
 | パス | 中身 |
@@ -89,28 +87,16 @@
 | `docs/architecture/` | アーキテクチャ図。`architecture.py`（diagrams）から `architecture.png` を作る。`docker compose run --rm diagrams` |
 | `web/` | Web版（Next.js）。上の表を参照 |
 | `Dockerfile` / `compose.yaml` | 開発環境（Node 24）。ソースはマウントし、依存はイメージとボリュームに置く |
-| `mock/index.html` | 画面のモック一式（タイトル、公約ブック、新聞、メイン、選挙、ゲームオーバー）。ロジックはまだ中に直接書いてある |
 | `docs/design.md` | 設計書（類似ゲームの調査、属性、補正のモデル、選挙、失脚） |
 | `docs/background_prompts.md` | 背景7パターンの画像生成プロンプト |
 | `docs/promo_x_4koma.md` | Xの予告プロモーション（各党の「公約と結末」4コマと画像生成プロンプト） |
 
 ## 動かし方
-```
-python3 -m http.server 8933 --directory mock
-```
-http://localhost:8933/ を開く。データを変えたら、`mock/index.html` の読み込み処理にある `?v=` の数字を上げる。
-
-Claudeのプレビューからは `.claude/launch.json` の `moshimo-mock` で起動できる。8933が埋まっていれば空いているポートを使う。
-
-テスト：ルートで `npm install` のあと `npm test`。型チェックは `npm run typecheck`。
-
 Web版（Docker）：ルートで `docker compose up`（http://localhost:3000）。Claudeのプレビューからは `.claude/launch.json` の `moshimo-web`（同じく `docker compose up web`）。Gemini を使うときは `web/.env.local.example` を `web/.env.local` にコピーしてキーを入れる（キーはイメージに入れず、マウントしたファイルから読む）。
 - テスト・型チェック：`docker compose exec web npm test`、`docker compose exec web npm run typecheck`（止まっているときは `exec` を `run --rm` に）。
 - `node_modules` と `web/.next` は Docker のボリュームに置き、Mac 側のものは使わない。依存を足したら `docker compose up` の起動時に `npm install` が走る。おかしくなったら `docker compose down -v` でボリュームごと作り直す。
 - Docker を使わずに Mac で直接動かすなら、ルートで `npm install` のあと `npm run dev`。
 
 ## 注意
-- 古いリポジトリ（`2605_hackathon`）の `.claude/launch.json` に、このフォルダの `mock` を指す `moshimo-mock` が仮で入っている。このリポジトリの設定から起動できることは確認したので、古いほうは消してよい。
-- モックの中の危機・陳情やその他の政策は、まだ `data/game.json` と二重に持っている。Web版に移したらモックごと消す。
-- `file://` で開くと外部のJSが読み込まれない。必ずローカルサーバーで開く。
-- モックの地方化の背景では、ビルが低くなって「経済団体」のアイコンが少し浮いて見える。本番の画像で構図をそろえれば解消する前提。
+- 古いリポジトリ（`2605_hackathon`）の `.claude/launch.json` に、このフォルダの `mock` を指す `moshimo-mock` が仮で入っている。モックは消したので、古いほうも消してよい。
+- 地方化の背景（`web/lib/scene.ts` のSVG）では、ビルが低くなって「経済団体」のアイコンが少し浮いて見える。本番の画像で構図をそろえれば解消する前提。

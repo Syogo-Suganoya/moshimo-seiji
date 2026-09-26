@@ -1,6 +1,6 @@
 # 「もしも政治」設計書
 
-最終更新：2026-09-26（モック `mock/index.html` の仕様に合わせて改訂。行動経済学・ゲーム理論のモデル、背景パターン、諸外国を追加）
+最終更新：2026-09-26（モックを Web版に移し、モックを削除。構成を Web版・スキル版・共通エンジンに改訂）
 
 ## 1. コンセプト
 - プレイヤーは2026年の日本の内閣総理大臣。少子高齢化・低成長・GDP比250%の債務を抱えた状態から始める。
@@ -181,7 +181,7 @@ Sources: [Frostpunk Book of Laws](https://frostpunk.fandom.com/wiki/Book_of_Laws
 | それ以外 | 順調（夕暮れの穏やかな街） |
 
 - 「都市化の度合い」（−10〜+10）は、表明した政策で動く。成長投資・エネルギー・AI・半導体・再開発で+2、農業・防災・地方・移住で−2。
-- モックでは7パターンをSVGで描き分けている。本番は7枚の画像に差し替える（住民アイコンの位置と合うよう、7枚とも構図をそろえる）。
+- 今は7パターンをSVGで描き分けている（`web/lib/scene.ts`）。本番は7枚の画像に差し替える（住民アイコンの位置と合うよう、7枚とも構図をそろえる）。
 
 ### 4.7 選挙
 - 衆院の任期満了は2030年2月（開始から13ターン後）。ゲーム内最初の選挙は第52回。
@@ -246,19 +246,16 @@ moshimo-seiji/
   scripts/build_skill.sh      # スキル版のビルドと zip 作成
   docs/architecture/          # アーキテクチャ図（diagrams のスクリプトと PNG、描くための Dockerfile）
   Dockerfile, compose.yaml    # 開発環境
-  mock/index.html             # 最初のモック（画面・ロジック・情景SVGを1ファイルに収めたもの。Web版に移し終えたら消す）
-  mock/data -> ../data        # モックもJSONを読む
   docs/design.md              # 本書
   docs/progress.md            # 進捗と引き継ぎ
   docs/background_prompts.md  # 背景7パターンの画像生成プロンプト
   docs/promo_x_4koma.md       # X予告用の4コマ（日常ストーリーと画像プロンプト）
 ```
 - Web版：ルートで `docker compose up`、http://localhost:3000 を開く（開発環境は Docker。Node 24）。Claudeのプレビューからは `.claude/launch.json` の `moshimo-web`。
-- モック：`.claude/launch.json` の `moshimo-mock`（`python3 -m http.server 8933 --directory mock`）。HTMLを直接開く（file://）方式ではデータが読み込まれない。
 - テスト：`docker compose exec web npm test`。
 
 ### 未実装・仮のもの
-- 自由な表明への反応は Gemini（Web版のみ。モックはキーワードでの決め打ち）。
+- 自由な表明への反応は、Web版は Gemini、スキル版は Claude が作る。
 - 背景は7パターンのSVG（本実装は事前に生成した7枚の画像）。
 - 予算・外交・閣僚・世論調査の画面、結果のシェアは未実装。
 - 歴代ランキングのライバルはダミー。

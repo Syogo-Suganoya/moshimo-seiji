@@ -72,7 +72,6 @@ moshimo-seiji/
   engine/      計算ロジック（TypeScript）とテスト
   web/         Web版（Next.js）。画面と、Gemini を呼ぶ API Route
   skill/       Claude スキル版。SKILL.md と、エンジンを1ファイルにまとめるビルド
-  mock/        最初の画面モック（Web版に移し終えたら消す予定）
   docs/        設計書・進捗・画像生成プロンプトなど
 ```
 
