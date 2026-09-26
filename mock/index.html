@@ -7,8 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Rubik:wght@600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<script src="data/ldp_policies.js?v=5"></script>
-<script src="data/parties.js?v=6"></script>
+<script>
+// 公約データの正本は data/*.json（mock/data は ../data へのシンボリックリンク）。
+// 下のゲーム処理が同期で読むので、ここも同期で読み込み、以前と同じ形のグローバル変数にする
+(()=>{const get=f=>{const x=new XMLHttpRequest();x.open('GET',`data/${f}?v=7`,false);x.send();return JSON.parse(x.responseText)};
+  const pa=get('parties.json'),po=get('policies.json');
+  window.PARTIES=pa.parties;
+  window.LDP_POLICIES=po.policies.filter(p=>p.party==='ldp').map(p=>({...p,reactions:p.reactions.map(r=>[r.who,r.emo,r.text,r.fx])}));
+  window.PARTY_POLICIES=po.policies.filter(p=>p.party!=='ldp')})();
+</script>
 <style>
 :root{
   --navy:#1f2244; --navy2:#2d3160; --cream:#fff5e1; --cream2:#f3e6c8;
