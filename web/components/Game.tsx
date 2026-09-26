@@ -19,7 +19,8 @@ type NewLog =
   | { kind: 'me'; text: string }
   | { kind: 'spk'; who: SpeakerId; emo?: Emotion; text: string; fx: Fx };
 type LogItem = NewLog & { id: number };
-interface Bubble { text: string; emo?: Emotion; peek?: boolean; sup?: number | null; n: number }
+// step：自動で出している発言。'next' なら「次へ」、'last' なら「OK」ボタンを吹き出しの中に出す
+interface Bubble { text: string; emo?: Emotion; peek?: boolean; sup?: number | null; n: number; step?: 'next' | 'last' }
 interface ModalState { title: string; body: ReactNode; btns: [string, string, (() => void) | null][]; align?: string }
 interface Records { best: number; maxAppr: number; plays: number }
 
@@ -49,7 +50,8 @@ export default function Game() {
   const logId = useRef(0);
   const [bubbles, setBubbles] = useState<Partial<Record<SpeakerId, Bubble>>>({});
   const [fnums, setFnums] = useState<Partial<Record<SpeakerId, { d: number; n: number }>>>({});
-  const bubbleTimers = useRef<Partial<Record<SpeakerId, ReturnType<typeof setTimeout>>>>({});
+  // 吹き出しの「次へ」で進めるための待ち
+  const advanceRef = useRef<(() => void) | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [thinking, setThinking] = useState(false);
@@ -112,11 +114,10 @@ export default function Game() {
     }, ms);
   }, []);
 
-  const speak = useCallback((k: SpeakerId, text: string, emo?: Emotion, fx: Fx = {}) => {
+  // 1人分の発言を吹き出しに出し、「次へ」が押されるまで待つ。吹き出しは同時に1つだけ出す
+  const speak = useCallback(async (k: SpeakerId, text: string, emo?: Emotion, fx: Fx = {}, last = true) => {
     const n = Date.now() + Math.random();
-    setBubbles((b) => ({ ...b, [k]: { text, emo, n } }));
-    clearTimeout(bubbleTimers.current[k]);
-    bubbleTimers.current[k] = setTimeout(() => setBubbles((b) => (b[k]?.n === n ? { ...b, [k]: undefined } : b)), 5600);
+    setBubbles({ [k]: { text, emo, n, step: last ? 'last' : 'next' } });
     const d = Object.values(fx).reduce((a, v) => a + (v ?? 0), 0);
     if (d) setFnums((f) => ({ ...f, [k]: { d, n } }));
     // 話している人が画面外なら、そこまでスクロール
@@ -126,7 +127,50 @@ export default function Game() {
       if (mx < w.scrollLeft + 100 || mx > w.scrollLeft + w.clientWidth - 100) w.scrollTo({ left: mx - w.clientWidth / 2, behavior: 'smooth' });
     }
     addLog({ kind: 'spk', who: k, emo, text, fx });
+    await new Promise<void>((res) => { advanceRef.current = res; });
+    setBubbles((b) => (b[k]?.n === n ? {} : b));
   }, [addLog]);
+
+  const advance = useCallback(() => {
+    const f = advanceRef.current;
+    advanceRef.current = null;
+    f?.();
+  }, []);
+
+  // 何人かの発言を順に出す。each は各発言を出す直前に呼ぶ（支持率の表示を1人ずつ進めるため）
+  const speakAll = useCallback(async (lines: Line[], each?: (l: Line) => void) => {
+    for (const [i, l] of lines.entries()) {
+      each?.(l);
+      await speak(l.who, l.text, l.emo, l.fx, i === lines.length - 1);
+    }
+  }, [speak]);
+
+  // Enter でも「次へ」。入力欄の外ならスペースと→でも進める
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!advanceRef.current || e.isComposing) return;
+      const inField = e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement;
+      if (e.key === 'Enter' || (!inField && (e.key === ' ' || e.key === 'ArrowRight'))) {
+        e.preventDefault();
+        advance();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [advance]);
+
+  // 発言を順に出している間は、ほかの操作を受け付けない
+  const withBusy = async (fn: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
 
   const peek = (k: SpeakerId, on: boolean) => {
     if (!on) {
@@ -161,30 +205,27 @@ export default function Game() {
   const react = useCallback(async (lines: Line[], final: GameState) => {
     const a0 = approval(gameRef.current);
     const v = { ...gameRef.current.v };
-    for (const l of lines) {
-      await wait(850 + Math.random() * 350);
+    await wait(400);
+    await speakAll(lines, (l) => {
       for (const [k, d] of Object.entries(l.fx) as [FacId, number][]) v[k] = clamp(v[k] + d);
       setShownV({ ...v });
-      speak(l.who, l.text, l.emo, l.fx);
-    }
+    });
     commit(final);
     setShownV(null);
     if (approval(final) < a0 - 0.5) setShake((x) => x + 1);
     await wait(700);
     setScene(pickScene(final));
-  }, [commit, setScene, speak]);
+  }, [commit, setScene, speakAll]);
 
-  const say = async () => {
+  const say = () => {
     const text = input.trim();
-    if (!text || busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setInput('');
-    const sn = Date.now();
-    setStmt({ text, n: sn });
-    setTimeout(() => setStmt((x) => (x?.n === sn ? null : x)), 5000);
-    addLog({ kind: 'me', text });
-    try {
+    if (!text) return;
+    return withBusy(async () => {
+      setInput('');
+      const sn = Date.now();
+      setStmt({ text, n: sn });
+      setTimeout(() => setStmt((x) => (x?.n === sn ? null : x)), 5000);
+      addLog({ kind: 'me', text });
       const g = gameRef.current;
       let freeform: Policy | undefined;
       // 公約に当たらない表明だけ Gemini に反応を作らせる
@@ -212,19 +253,16 @@ export default function Game() {
         setTimeout(() => showToast(sup.includes('ldp') ? `${names} の公約に沿った表明` : `${names} の公約と同じ方向！野党が賛同`, 2600), 400);
       }
       await react(result.lines, state);
-    } finally {
-      busyRef.current = false;
-      setBusy(false);
-    }
+    });
   };
 
-  const answerQuest = (id: string, accept: boolean) => {
+  const answerQuest = (id: string, accept: boolean) => withBusy(async () => {
     const { state, lines, notes } = respondQuest(gameRef.current, id, accept);
     commit(state);
-    lines.forEach((l) => speak(l.who, l.text, l.emo, accept ? {} : l.fx));
     notes.forEach(sys);
     if (!accept) setShake((x) => x + 1);
-  };
+    await speakAll(accept ? lines.map((l) => ({ ...l, fx: {} })) : lines);
+  });
 
   // ================= 画面遷移 =================
   const resetOffice = () => {
@@ -259,7 +297,7 @@ export default function Game() {
     }, 900);
   };
 
-  const toOffice = async () => {
+  const toOffice = () => withBusy(async () => {
     const g = gameRef.current;
     setScreen('main');
     setScene(pickScene(g), true);
@@ -270,23 +308,20 @@ export default function Game() {
     await wait(900);
     if (g.turn === 0) {
       sys('新内閣 発足！');
-      speak('cab', '総理、就任おめでとうございます！まずは所信表明を。下の欄にどうぞ。', '安');
-      await wait(1800);
-      speak('press', '総理、物価高・少子化・財政。最優先はどれですか？', '疑');
+      await speakAll([
+        { who: 'cab', emo: '安', text: '総理、就任おめでとうございます！まずは所信表明を。下の欄にどうぞ。', fx: {} },
+        { who: 'press', emo: '疑', text: '総理、物価高・少子化・財政。最優先はどれですか？', fx: {} },
+      ]);
       return;
     }
     const [y, q] = quarterLabel(g.turn);
     sys(`${y}年 Q${q}`);
-    for (const aq of g.quests.filter((x) => x.fresh)) {
+    const fresh: Line[] = g.quests.filter((x) => x.fresh).map((aq) => {
       const Q = QUEST[aq.id];
-      speak(Q.who, Q.say, Q.kind === 'crisis' ? '焦' : '疑');
-      await wait(1600);
-    }
-    for (const l of expiredLines(g)) {
-      speak(l.who, l.text, l.emo, l.fx);
-      await wait(1600);
-    }
-  };
+      return { who: Q.who, emo: Q.kind === 'crisis' ? '焦' : '疑', text: Q.say, fx: {} };
+    });
+    await speakAll([...fresh, ...expiredLines(g)]);
+  });
 
   const gameOver = () => {
     const g = gameRef.current;
@@ -332,7 +367,7 @@ export default function Game() {
   };
 
   const dissolve = () =>
-    setModal({
+    !busyRef.current && setModal({
       title: '解散総選挙する？',
       body: <>いまの内閣支持率は <b>{approval(gameRef.current).toFixed(1)}%</b>。<br />勝てば任期リセット、負ければ即失脚！</>,
       btns: [['やめる', '', null], ['解散！', 'coral', () => wipe('衆議院', '解散総選挙！', startElection, 1500)]],
@@ -456,7 +491,7 @@ export default function Game() {
               <div className={`flash ${scene && SCENES[scene].rain ? 'on' : ''}`} />
               <div>
                 {SPEAKER_IDS.map((k) => (
-                  <Marker key={k} k={k} v={facAvg(v, k)} bubble={bubbles[k]} fnum={fnums[k]} onPeek={(on) => peek(k, on)} />
+                  <Marker key={k} k={k} v={facAvg(v, k)} bubble={bubbles[k]} fnum={fnums[k]} onPeek={(on) => peek(k, on)} onNext={advance} />
                 ))}
               </div>
             </div>
@@ -509,8 +544,8 @@ export default function Game() {
                       <>
                         <b>{role(Q.who)}</b>「{Q.say}」
                         <div className="qa">
-                          <button className="btn mint" onClick={() => answerQuest(q.id, true)}><i className="fa-solid fa-handshake" />約束する</button>
-                          <button className="btn" onClick={() => answerQuest(q.id, false)}>断る</button>
+                          <button className="btn mint" disabled={busy} onClick={() => answerQuest(q.id, true)}><i className="fa-solid fa-handshake" />約束する</button>
+                          <button className="btn" disabled={busy} onClick={() => answerQuest(q.id, false)}>断る</button>
                         </div>
                       </>
                     ) : (
@@ -532,11 +567,11 @@ export default function Game() {
 
           <div className="tools">
             <button className="btn" onClick={() => setLogOpen((x) => !x)}><i className="fa-solid fa-comments" />ログ</button>
-            <button className="btn" onClick={dissolve}><i className="fa-solid fa-check-to-slot" />解散</button>
+            <button className="btn" disabled={busy} onClick={dissolve}><i className="fa-solid fa-check-to-slot" />解散</button>
           </div>
           <div className="dock panel">
             <div className="row">
-              <button className="btn bookbtn" onClick={() => openBook('main')}><i className="fa-solid fa-scroll" />政策</button>
+              <button className="btn bookbtn" disabled={busy} onClick={() => openBook('main')}><i className="fa-solid fa-scroll" />政策</button>
               <textarea
                 ref={chatRef}
                 value={input}
@@ -550,7 +585,7 @@ export default function Game() {
               <button className="btn sun say" disabled={busy} onClick={say}>表明<small><i className="fa-solid fa-bolt" />×1</small></button>
             </div>
           </div>
-          <button className="endturn" onClick={endTurn}><i className="fa-solid fa-forward" />ターン<br />終了</button>
+          <button className="endturn" disabled={busy} onClick={endTurn}><i className="fa-solid fa-forward" />ターン<br />終了</button>
           <div className={`log panel ${logOpen ? 'on' : ''}`}>
             <h3 className="disp">ログ<button onClick={() => setLogOpen(false)}><i className="fa-solid fa-xmark" /></button></h3>
             <LogList log={log} />
@@ -598,8 +633,8 @@ function Delta({ a, prev }: { a: number; prev: number | null }) {
   return <span className={`d num ${d > 0 ? 'up' : 'dn'}`}>{d ? `${d > 0 ? '▲' : '▼'}${Math.abs(d)}` : ''}</span>;
 }
 
-function Marker({ k, v, bubble, fnum, onPeek }: {
-  k: SpeakerId; v: number | null; bubble?: Bubble; fnum?: { d: number; n: number }; onPeek: (on: boolean) => void;
+function Marker({ k, v, bubble, fnum, onPeek, onNext }: {
+  k: SpeakerId; v: number | null; bubble?: Bubble; fnum?: { d: number; n: number }; onPeek: (on: boolean) => void; onNext: () => void;
 }) {
   const p = SPK[k];
   const C = 2 * Math.PI * 30;
@@ -611,13 +646,18 @@ function Marker({ k, v, bubble, fnum, onPeek }: {
       onMouseEnter={() => onPeek(true)}
       onMouseLeave={() => onPeek(false)}
     >
-      <div className={`bub ${bubble ? 'on' : ''} ${bubble?.peek ? 'peek' : ''}`}>
+      <div className={`bub ${bubble ? 'on' : ''} ${bubble?.peek ? 'peek' : ''} ${bubble?.step ? 'step' : ''}`}>
         {bubble && (
           <>
             <div className="who">{e && <i className={`fa-solid ${e[0]}`} style={{ color: e[1] }} />}<span className="n">{role(k)}</span></div>
             <p>{bubble.text}</p>
             {bubble.peek && bubble.sup != null && (
               <div className="sup"><span>支持率</span><div className="sb"><i style={{ width: `${bubble.sup}%`, background: moodCol(bubble.sup) }} /></div><b className="num">{bubble.sup}%</b></div>
+            )}
+            {bubble.step && (
+              <button className="bub-next" onClick={onNext} autoFocus={false}>
+                {bubble.step === 'next' ? <>次へ<i className="fa-solid fa-caret-right" /></> : 'OK'}
+              </button>
             )}
           </>
         )}
