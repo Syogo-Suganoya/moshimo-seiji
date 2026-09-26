@@ -1,0 +1,14 @@
+{
+  "name": "moshimo-seiji",
+  "displayName": "もしも政治",
+  "version": "0.1.0",
+  "description": "日本の総理大臣になって政策を自分の言葉で表明する政治シミュレーションゲーム。Claude が進行役をする（フィクション）。",
+  "author": {
+    "name": "Syogo-Suganoya",
+    "url": "https://github.com/Syogo-Suganoya"
+  },
+  "homepage": "https://github.com/Syogo-Suganoya/moshimo-seiji",
+  "repository": "https://github.com/Syogo-Suganoya/moshimo-seiji",
+  "license": "MIT",
+  "keywords": ["game", "politics", "simulation", "japanese"]
+}

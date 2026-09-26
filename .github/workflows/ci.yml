@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: テスト
+        run: npm test
+      - name: 型チェック
+        run: npm run typecheck
+      - name: スキルのコマンドがソースと一致しているか
+        run: |
+          npm run build -w skill
+          git diff --exit-code -- skill/moshimo-seiji/scripts/moshimo.mjs || {
+            echo "skill/moshimo-seiji/scripts/moshimo.mjs が古いままです。./scripts/build_skill.sh で作り直してコミットしてください。"
+            exit 1
+          }

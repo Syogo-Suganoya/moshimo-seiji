@@ -1,0 +1,37 @@
+name: Release
+
+# v0.1.0 のようなタグを push すると、claude.ai 用のスキルの zip を作ってリリースに置く
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: タグとプラグインのバージョンが一致しているか
+        run: |
+          v=$(node -p "require('./skill/moshimo-seiji/.claude-plugin/plugin.json').version")
+          if [ "v$v" != "$GITHUB_REF_NAME" ]; then
+            echo "タグ $GITHUB_REF_NAME と plugin.json の version ($v) が一致しません。"
+            exit 1
+          fi
+      - name: スキルの zip を作る
+        run: ./scripts/build_skill.sh
+      - name: リリースを作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/moshimo-seiji.zip \
+            --title "もしも政治 $GITHUB_REF_NAME" \
+            --generate-notes

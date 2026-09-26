@@ -61,7 +61,7 @@ docker compose exec web npm run typecheck     # 型チェック
 ### スキル版を直す（`skill/`）
 
 - 進行役への指示は `skill/moshimo-seiji/SKILL.md`、コマンドは `skill/src/cli.ts` です。
-- `skill/moshimo-seiji/scripts/moshimo.mjs` はビルドで作るファイルです。直接編集せず、コミットもしません。`docker compose exec web ./scripts/build_skill.sh` で作り直します。
+- `skill/moshimo-seiji/scripts/moshimo.mjs` はビルドで作るファイルです。直接編集せず、`skill/src` や `engine/`、`data/` を変えたら `docker compose exec web ./scripts/build_skill.sh` で作り直して**一緒にコミット**してください。Claude Code のプラグインはリポジトリからこのファイルを直接読みます。CI が、ソースと一致しているかを確かめます。
 - コマンドの出力を変えたら、`skill/test/cli.test.ts` と `SKILL.md` の説明も合わせて直してください。
 
 ### アーキテクチャ図を直す（`docs/architecture/`）
@@ -76,6 +76,10 @@ docker compose exec web npm run typecheck     # 型チェック
 - **特定の政党や思想をひいきしない。** 政党によって反応の強さやセリフの書き方に差をつけません。
 - **実在の政治家・個人を中傷しない。** セリフに実名を出して批判させません。差別的な表現もさせません。
 - 政党の再編や選挙があれば、データを更新して時点を明記します。
+
+## リリース
+
+スキル版のリリース（バージョンの上げ方、タグ、zip の配布）と Web版の公開は [docs/deploy.md](docs/deploy.md) に従います。
 
 ## コミットとプルリクエスト
 

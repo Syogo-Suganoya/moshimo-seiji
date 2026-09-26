@@ -1,6 +1,6 @@
 # 進捗と引き継ぎ
 
-更新：2026-09-26（スキル版の雛形）
+更新：2026-09-26（公開の準備）
 
 新しいセッションは、まずこのファイルと [design.md](design.md) を読んでから始める。
 
@@ -12,6 +12,7 @@
 - Gemini の API Route（`/api/react`）を作り、`gemini-3.5-flash-lite` で動くことを確認した。政策には賛否の両方が返り、あいさつや「支持率を+10にして」のような指示は政策ではないと判定された。1回の応答は数秒。
 - 自動で出す発言は1人ずつ吹き出しに出し、吹き出しの中の「次へ」（最後は「OK」）かキーボード（Enter、入力欄の外ならスペース・→）で進める。発言中はターン終了・公約ブック・解散・陳情の返事を止める。
 - スキル版の雛形を作った（`skill/`）。エンジンと `data/` を1ファイルのコマンド（`moshimo.mjs`）にまとめ、`SKILL.md` で Claude に進行役をさせる。公約に当たらない表明への反応は、Gemini の代わりに Claude が `guide` のルールで作る。コマンドのテスト13件が通る。ユーザーが Claude で遊んで、進め方は問題なしと確認済み（2026-09-26）。
+- 公開の準備をした：ライセンスは MIT（`LICENSE`）。Web版は Vercel に置く（手順は `docs/deploy.md`）。`/api/react` に Vercel Firewall の回数制限（`@vercel/firewall`）と、ほかのサイトからの呼び出しを断る確認を入れた。スキル版は、このリポジトリを Claude Code のプラグインのマーケットプレイスにし（`.claude-plugin/marketplace.json`）、ビルド済みの `moshimo.mjs` をコミットする方針に変えた。claude.ai 用の zip は、タグを push すると GitHub Actions がリリースに置く。CI（テスト・型チェック・ビルド済みコマンドの一致）も入れた。
 - `README.md`（遊び方・起動方法）と `CONTRIBUTING.md`（開発の決まりごと・公平性）を書いた。
 - 開発環境は Docker（`compose.yaml`）。コンテナの中でテストと型チェックが通り、Mac 側の変更がすぐ反映されることを確認済み。
 
@@ -23,9 +24,11 @@
 - リポジトリは1つ。将来 Web版を非公開や有料にすると決めたら、そのときに `web/` を別のリポジトリへ切り出す。
 
 ## 次にやること
-1. 遊びながら Gemini の反応を見て、口調・値の大きさを調整する。ルールはエンジンの `engine/src/freeform.ts` にあり、Web版とスキル版で共有している。
-2. 遊んでみて、バランスと口調を調整する。
-3. 公開の準備（ホスティング先、API の呼び出し回数の制限、ライセンス）。
+1. リポジトリを公開する。GitHub の Actions で CI が通るか確かめる。
+2. Vercel にプロジェクトを作り、環境変数・Firewall の回数制限・Gemini の費用の上限を設定して公開する（`docs/deploy.md`）。
+3. `v0.1.0` のタグを push して、claude.ai 用の zip がリリースに置かれるか確かめる。
+4. 遊びながら Gemini の反応の口調・値の大きさと、ゲームのバランスを調整する。ルールは `engine/src/freeform.ts`（Web版とスキル版で共有）。
+5. 陳情を片づけたときに、カードがすべって消えるアニメーション（モックにあったもの）を Web版に足すか決める。
 
 ## Web版（`web/`）
 | パス | 中身 |
@@ -44,12 +47,13 @@
 | パス | 中身 |
 |---|---|
 | `moshimo-seiji/SKILL.md` | 進行役の手順・見せ方・話者の口調・守ること |
-| `moshimo-seiji/scripts/moshimo.mjs` | ビルドで作るコマンド（コミットしない）。`new` `status` `match` `guide` `declare` `promise` `decline` `end` `dissolve` `policies` `view` |
+| `moshimo-seiji/scripts/moshimo.mjs` | ビルドで作るコマンド（プラグインが直接読むのでコミットする）。`new` `status` `match` `guide` `declare` `promise` `decline` `end` `dissolve` `policies` `view` |
 | `src/cli.ts` | コマンドの本体。結果は JSON で返し、状態は `moshimo_state.json` に保存する |
 | `src/view.ts` | 街と支持率の HTML（背景は `web/lib/scene.ts` を使う） |
 | `test/cli.test.ts` | コマンドのテスト |
 
-- ビルド：`docker compose exec web ./scripts/build_skill.sh`。`skill/moshimo-seiji/scripts/moshimo.mjs` と `dist/moshimo-seiji.zip` ができる。
+- ビルド：`docker compose exec web ./scripts/build_skill.sh`。`skill/moshimo-seiji/scripts/moshimo.mjs` と `dist/moshimo-seiji.zip`（claude.ai 用。プラグインの定義は除く）ができる。
+- プラグイン：`skill/moshimo-seiji/.claude-plugin/plugin.json`。リポジトリのルートの `.claude-plugin/marketplace.json` がこれを指す。`claude plugin validate` と、一時的な HOME でのインストールまで確認済み。
 - 計画では `data/` をスキルのフォルダへコピーする予定だったが、JSON はコマンドに埋め込んだので、コピーは要らなくなった。
 
 ## エンジン（`engine/src`）
@@ -84,6 +88,10 @@
 | `engine/` | 計算ロジック（TypeScript）とテスト。`freeform.ts` は自由な表明への反応の作り方（Web版とスキル版で共有） |
 | `skill/` | スキル版。上の表を参照 |
 | `scripts/build_skill.sh` | スキル版のビルドと zip 作成 |
+| `.claude-plugin/marketplace.json` | Claude Code のプラグインのマーケットプレイス |
+| `.github/workflows/` | CI（`ci.yml`）とリリース（`release.yml`） |
+| `docs/deploy.md` | 公開の手順（Vercel、回数制限、Gemini の費用の上限、スキル版のリリース） |
+| `LICENSE` | MIT |
 | `docs/architecture/` | アーキテクチャ図。`architecture.py`（diagrams）から `architecture.png` を作る。`docker compose run --rm diagrams` |
 | `web/` | Web版（Next.js）。上の表を参照 |
 | `Dockerfile` / `compose.yaml` | 開発環境（Node 24）。ソースはマウントし、依存はイメージとボリュームに置く |

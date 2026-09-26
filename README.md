@@ -39,13 +39,22 @@ cp web/.env.local.example web/.env.local
 
 ## Claude のスキルとして遊ぶ
 
-Claude に進行役をしてもらう版もあります。数値はスキルに入っているコマンド（エンジンを1ファイルにまとめたもの）で計算し、公約に当たらない表明には Claude が反応を作ります。
+Claude に進行役をしてもらう版もあります。数値はスキルに入っているコマンド（エンジンを1ファイルにまとめたもの）で計算し、公約に当たらない表明には Claude が反応を作ります。どちらも Node.js 18 以上が動く環境で使えます。
 
-```bash
-docker compose run --rm web ./scripts/build_skill.sh
+### Claude Code
+
+プラグインとして入れられます。Claude Code の中で次の2行を実行します。
+
+```text
+/plugin marketplace add Syogo-Suganoya/moshimo-seiji
+/plugin install moshimo-seiji@moshimo-seiji
 ```
 
-`dist/moshimo-seiji.zip` ができるので、claude.ai のスキルとしてアップロードします。Claude Code で使うときは、`skill/moshimo-seiji` フォルダをスキルのフォルダ（例：`~/.claude/skills/`）に置きます。そのあと「もしも政治で遊びたい」と話しかけてください。
+そのあと「もしも政治で遊びたい」と話しかけてください。
+
+### claude.ai
+
+[Releases](https://github.com/Syogo-Suganoya/moshimo-seiji/releases) から `moshimo-seiji.zip` をダウンロードし、claude.ai の設定にあるスキルの画面からアップロードします。そのあと、チャットで「もしも政治で遊びたい」と話しかけてください。
 
 ## よく使うコマンド
 
@@ -86,4 +95,8 @@ moshimo-seiji/
 
 ## 開発に参加する
 
-[CONTRIBUTING.md](CONTRIBUTING.md) を読んでください。
+[CONTRIBUTING.md](CONTRIBUTING.md) を読んでください。公開の手順は [docs/deploy.md](docs/deploy.md) にあります。
+
+## ライセンス
+
+[MIT](LICENSE)。公約データの要旨は各党の公約をもとにしており、出典は `data/*.json` に記載しています。

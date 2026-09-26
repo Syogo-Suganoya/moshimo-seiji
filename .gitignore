@@ -8,5 +8,3 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 dist/
-# スキルのビルドで作るファイル（scripts/build_skill.sh）
-skill/moshimo-seiji/scripts/moshimo.mjs

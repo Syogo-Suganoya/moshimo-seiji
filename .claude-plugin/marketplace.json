@@ -1,0 +1,15 @@
+{
+  "name": "moshimo-seiji",
+  "description": "政治シミュレーションゲーム「もしも政治」の Claude Code プラグイン",
+  "owner": {
+    "name": "Syogo-Suganoya",
+    "url": "https://github.com/Syogo-Suganoya"
+  },
+  "plugins": [
+    {
+      "name": "moshimo-seiji",
+      "source": "./skill/moshimo-seiji",
+      "description": "日本の総理大臣になって政策を自分の言葉で表明する政治シミュレーションゲーム（フィクション）"
+    }
+  ]
+}

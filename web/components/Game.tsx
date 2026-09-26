@@ -237,6 +237,7 @@ export default function Game() {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ text, v: g.v }),
           });
+          if (r.status === 429) showToast('街の声が混み合っています。少し待ってから、もう一度どうぞ', 3000);
           const j = await r.json();
           if (j.policy) freeform = sanitizeFreeform(j.policy);
         } catch {
