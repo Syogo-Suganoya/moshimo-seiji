@@ -4,9 +4,23 @@
     {
       "name": "moshimo-mock",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "python3 -m http.server ${PORT:-8933} --directory mock"],
+      "runtimeArgs": [
+        "-c",
+        "python3 -m http.server ${PORT:-8933} --directory mock"
+      ],
       "port": 8933,
       "autoPort": true
+    },
+    {
+      "name": "moshimo-web",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": [
+        "compose",
+        "up",
+        "web"
+      ],
+      "port": 3000,
+      "autoPort": false
     }
   ]
 }

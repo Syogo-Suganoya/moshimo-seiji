@@ -200,8 +200,9 @@ Sources: [Frostpunk Book of Laws](https://frostpunk.fandom.com/wiki/Book_of_Laws
 ## 5. 公約データ
 | ファイル | 内容 |
 |---|---|
-| `mock/data/ldp_policies.js` | 自民党の公約15件（2025年参院選公約、2026年衆院選公約、2026年2月施政方針）。反応のセリフを個別に作成 |
-| `mock/data/parties.js` | 11政党の基本情報と、自民党以外の10政党の公約45件（主に2026年2月の第51回衆院選） |
+| `data/policies.json` | 公約60件。自民党15件（2025年参院選公約、2026年衆院選公約、2026年2月施政方針）は反応のセリフを個別に作成。自民党以外の10政党45件（主に2026年2月の第51回衆院選） |
+| `data/parties.json` | 11政党の基本情報と出典 |
+| `data/game.json` | 属性・補正の係数・選挙・話者・危機と陳情・その他の政策などのパラメータ |
 
 - 政党の状況は2026年9月26日時点。
   - 第51回衆院選の議席：自民316、中道改革連合49、維新36、国民民主28、参政15、チームみらい11、共産4、れいわ1、減税日本・ゆうこく連合1、社民0、日本保守党0。
@@ -230,34 +231,38 @@ Sources: [Frostpunk Book of Laws](https://frostpunk.fandom.com/wiki/Book_of_Laws
   - 陳情カードの余白を詰める。
   - 公約ブックの政党タブ・分野タブは横スクロールの1行。
 
-## 7. モックの構成と確認方法
+## 7. 構成と確認方法
 ```
 moshimo-seiji/
-  docs/design.md            # 本書
-  mock/
-    index.html              # 画面・ロジック・情景SVGを1ファイルに収めたモック
-    data/ldp_policies.js    # 自民党の公約データ
-    data/parties.js         # 各政党の情報と公約データ
+  data/                       # 公約・政党・パラメータ（JSON。正本はここだけ）
+  engine/                     # 計算ロジック（TypeScript）とテスト
+  web/                        # Web版（Next.js）
+  Dockerfile, compose.yaml    # 開発環境
+  mock/index.html             # 最初のモック（画面・ロジック・情景SVGを1ファイルに収めたもの。Web版に移し終えたら消す）
+  mock/data -> ../data        # モックもJSONを読む
+  docs/design.md              # 本書
+  docs/progress.md            # 進捗と引き継ぎ
   docs/background_prompts.md  # 背景7パターンの画像生成プロンプト
   docs/promo_x_4koma.md       # X予告用の4コマ（日常ストーリーと画像プロンプト）
 ```
-- `.claude/launch.json` の `moshimo-mock`（`python3 -m http.server 8933 --directory moshimo-seiji/mock`）で起動し、http://localhost:8933 を開く。
-- データファイルを別読み込みしているため、HTMLを直接開く（file://）方式では公約データが読み込まれない場合がある。
-- データファイルのURLには版番号（`?v=6`）を付けてキャッシュを回避している。
+- Web版：ルートで `docker compose up`、http://localhost:3000 を開く（開発環境は Docker。Node 24）。Claudeのプレビューからは `.claude/launch.json` の `moshimo-web`。
+- モック：`.claude/launch.json` の `moshimo-mock`（`python3 -m http.server 8933 --directory mock`）。HTMLを直接開く（file://）方式ではデータが読み込まれない。
+- テスト：`docker compose exec web npm test`。
 
-### モックで未実装・仮のもの
-- 反応はキーワードでの決め打ち（本実装はLLM）。
+### 未実装・仮のもの
+- 自由な表明への反応は Gemini（Web版のみ。モックはキーワードでの決め打ち）。
 - 背景は7パターンのSVG（本実装は事前に生成した7枚の画像）。
 - 予算・外交・閣僚・世論調査の画面、結果のシェアは未実装。
 - 歴代ランキングのライバルはダミー。
 
 ## 8. 本実装に向けて（未決定を含む）
-- **反応の生成（LLM）**：表明文・現在の支持率・公約データを渡し、プロトコル・シェアと同様に1行1発言の形式で出力させる。
-  - 例：`[怒]年金暮らし「…」{oM:-9,oF:-10}`
-  - 行ごとに吹き出しと支持率の変化に変換する。
-  - どの公約にも当てはまらない自由な政策にも反応できるようにする。
-  - APIキーがない場合は、現在のモックと同じキーワード方式に切り替える（モックモード）。
+- **反応の生成（LLM）**：Gemini API（既定 `gemini-3.5-flash-lite`）を使う。公約・その他の政策に当たらない自由な表明にだけ使い、公約に当たる表明はデータの反応を使う。
+  - 表明文と属性ごとの支持率を渡し、JSON（`isPolicy`, `title`, `cat`, `cost`, `reactions[{who, emo, text, fx}]`）で返させる。
+  - 返ってきた値はエンジンの `sanitizeFreeform` で範囲に収め（1行±10、5行まで、コスト1〜3）、支持率の計算はエンジンで確定させる。
+  - 政策でない文、キーがない、呼び出しに失敗した、のどれかなら、記者が聞き返すだけにする（モックモード）。
 - **背景画像**：ターンごとの生成はやめ、事前に生成した7パターンを差し替える（4.6節）。生成コストと待ち時間がかからず、見た目も安定する。
-- **構成**：LLMのキーをブラウザに置かないため、サーバー側の処理が必要。当初案の React + Vite（フロントのみ）から、Next.js（App Router + API Routes）への変更を検討する（プロトコル・シェアと同じ構成）。
-- **ゲームロジック**：状態更新・失脚判定・選挙計算を画面から独立した関数にまとめ、テストでバランスを確認する（何もしないと数年で失脚する程度を目安にする）。
-- **公約データの更新**：選挙や政党の再編があれば `parties.js` を更新する。公明党・民主改革の会の独自公約が出たら差し替える。
+- **構成**：1つのリポジトリで、公約データ（`data/`）と計算ロジック（`engine/`、TypeScript）を Web版とClaudeスキル版で共有する。
+  - Web版は Next.js（App Router + API Routes）。エンジンはブラウザで動かし、Gemini のキーはサーバー側（API Route）だけに置く。
+  - スキル版は、エンジンを1ファイルのJSにまとめて `node` で動かし、状態を `state.json` に保存する。
+- **ゲームロジック**：状態更新・失脚判定・選挙計算を `engine/` の純粋な関数にまとめ、テストでバランスを確認する（何もしないと数年で失脚する程度を目安にする。今は9割以上が5年以内に失脚）。
+- **公約データの更新**：選挙や政党の再編があれば `data/parties.json` と `data/policies.json` を更新する。公明党・民主改革の会の独自公約が出たら差し替える。

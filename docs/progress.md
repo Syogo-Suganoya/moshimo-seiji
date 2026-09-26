@@ -1,6 +1,6 @@
 # 進捗と引き継ぎ
 
-更新：2026-09-26（エンジン移行後）
+更新：2026-09-26（Docker と Gemini の動作確認）
 
 新しいセッションは、まずこのファイルと [design.md](design.md) を読んでから始める。
 
@@ -8,7 +8,9 @@
 - 画面のモック（`mock/`）はひととおり動く。公約データは `data/*.json` から読む（`mock/data` は `../data` へのシンボリックリンク）。
 - 公約・政党・ゲームのパラメータは `data/` のJSONが正本。
 - 計算ロジックは `engine/`（TypeScript）に移した。テスト27件が通る。モックと同じ入力で同じ支持率になることを確認済み。
-- 設計書（`docs/design.md`）はモックの仕様に合わせてあるが、構成（8節）はまだ古い。
+- Web版（`web/`、Next.js 16）で、モックの画面をひととおり React に移した。タイトル、公約ブック、新聞、官邸、選挙、失脚まで遊べる。進行中のゲームは localStorage に保存し、タイトルの「続きから」で再開できる。
+- Gemini の API Route（`/api/react`）を作り、`gemini-3.5-flash-lite` で動くことを確認した。政策には賛否の両方が返り、あいさつや「支持率を+10にして」のような指示は政策ではないと判定された。1回の応答は数秒。
+- 開発環境は Docker（`compose.yaml`）。コンテナの中でテストと型チェックが通り、Mac 側の変更がすぐ反映されることを確認済み。
 
 ## 決めたこと
 - **AIは Gemini API を使う。** キーはサーバー側だけに置く。
@@ -18,12 +20,25 @@
 - リポジトリは1つ。将来 Web版を非公開や有料にすると決めたら、そのときに `web/` を別のリポジトリへ切り出す。
 
 ## 次にやること
-1. `web/` に Next.js を作る。画面はモックを React に移す。エンジンはブラウザで動かし、状態は localStorage に保存する。
-2. Gemini の API Route（`web/app/api/react/route.ts`）。表明文・支持率・話者一覧を渡し、JSON（`title`, `cat`, `cost`, `reactions[]`）で返させる。`sanitizeFreeform` で範囲に収めてから `declare(state, text, { freeform })` に渡す。キーがないときは今のキーワード方式だけで動く（モックモード）。
-3. スキルの雛形（`skill/moshimo-seiji/`）。`SKILL.md`、`scripts/`（エンジンをまとめたJSを呼ぶ入口）、`state.json` への保存。公平性の指示（実在の政党を扱うので「フィクションのシミュレーション」と明示）。
-4. `scripts/build_skill.sh`：`data/` とエンジンをまとめたJSをスキルのフォルダへコピーする。
-5. design.md の8節（構成）を今の決定に合わせて書き直す。
-6. 遊んでみて、バランスと口調を調整する。
+1. 遊びながら Gemini の反応を見て、口調・値の大きさを `web/lib/gemini.ts` のプロンプトで調整する。公約データの反応（±2〜10）と比べて大きすぎないか見る。
+2. スキルの雛形（`skill/moshimo-seiji/`）。`SKILL.md`、`scripts/`（エンジンをまとめたJSを呼ぶ入口）、`state.json` への保存。公平性の指示（実在の政党を扱うので「フィクションのシミュレーション」と明示）。
+3. `scripts/build_skill.sh`：`data/` とエンジンをまとめたJS（esbuild などで1ファイルに）をスキルのフォルダへコピーする。
+4. モック（`mock/`）を消す。Web版で足りない点がないか見比べてから。
+5. 遊んでみて、バランスと口調を調整する。
+6. 公開の準備（ホスティング先、API の呼び出し回数の制限）。
+
+## Web版（`web/`）
+| パス | 中身 |
+|---|---|
+| `app/page.tsx` / `components/Game.tsx` | 画面一式。数値はエンジンで確定させ、画面は演出と入力だけ |
+| `app/api/react/route.ts` | `GET`：モード（gemini / mock）を返す。`POST`：自由な表明への反応を返す |
+| `lib/gemini.ts` | Gemini へのプロンプトとJSONスキーマ。結果は `sanitizeFreeform` で範囲に収める |
+| `lib/scene.ts` | 背景7パターンのSVG（モックから移したもの） |
+| `lib/ui.ts` | 話者のアイコン・色・街の中の位置、感情のアイコンなど |
+| `.env.local.example` | `GEMINI_API_KEY`、`GEMINI_MODEL`（既定 `gemini-3.5-flash-lite`） |
+
+- 表明の流れ：公約・その他の政策に当たればデータの反応を使う。当たらず、Gemini が使え、政治資本が残っていれば `/api/react` を呼ぶ。失敗したり政策でない文だったりしたら、記者が聞き返すだけ（政治資本は減らない）。
+- Gemini には表明文と属性ごとの支持率だけを送る。返ってきた値はサーバーとブラウザの両方で範囲に収める。
 
 ## エンジン（`engine/src`）
 | 関数 | 中身 |
@@ -55,6 +70,8 @@
 | `data/parties.json` | 11政党の情報と出典 |
 | `data/game.json` | 属性、初期値、補正の係数、選挙、話者、危機・陳情、その他の政策などのパラメータ |
 | `engine/` | 計算ロジック（TypeScript）とテスト。`npm test` |
+| `web/` | Web版（Next.js）。上の表を参照 |
+| `Dockerfile` / `compose.yaml` | 開発環境（Node 24）。ソースはマウントし、依存はイメージとボリュームに置く |
 | `mock/index.html` | 画面のモック一式（タイトル、公約ブック、新聞、メイン、選挙、ゲームオーバー）。ロジックはまだ中に直接書いてある |
 | `docs/design.md` | 設計書（類似ゲームの調査、属性、補正のモデル、選挙、失脚） |
 | `docs/background_prompts.md` | 背景7パターンの画像生成プロンプト |
@@ -68,7 +85,12 @@ http://localhost:8933/ を開く。データを変えたら、`mock/index.html` 
 
 Claudeのプレビューからは `.claude/launch.json` の `moshimo-mock` で起動できる。8933が埋まっていれば空いているポートを使う。
 
-テスト：ルートで `npm install` のあと `npm test`。
+テスト：ルートで `npm install` のあと `npm test`。型チェックは `npm run typecheck`。
+
+Web版（Docker）：ルートで `docker compose up`（http://localhost:3000）。Claudeのプレビューからは `.claude/launch.json` の `moshimo-web`（同じく `docker compose up web`）。Gemini を使うときは `web/.env.local.example` を `web/.env.local` にコピーしてキーを入れる（キーはイメージに入れず、マウントしたファイルから読む）。
+- テスト・型チェック：`docker compose exec web npm test`、`docker compose exec web npm run typecheck`（止まっているときは `exec` を `run --rm` に）。
+- `node_modules` と `web/.next` は Docker のボリュームに置き、Mac 側のものは使わない。依存を足したら `docker compose up` の起動時に `npm install` が走る。おかしくなったら `docker compose down -v` でボリュームごと作り直す。
+- Docker を使わずに Mac で直接動かすなら、ルートで `npm install` のあと `npm run dev`。
 
 ## 注意
 - 古いリポジトリ（`2605_hackathon`）の `.claude/launch.json` に、このフォルダの `mock` を指す `moshimo-mock` が仮で入っている。このリポジトリの設定から起動できることは確認したので、古いほうは消してよい。
