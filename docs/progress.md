@@ -1,6 +1,6 @@
 # 進捗と引き継ぎ
 
-更新：2026-09-26（Docker と Gemini の動作確認）
+更新：2026-09-26（スキル版の雛形）
 
 新しいセッションは、まずこのファイルと [design.md](design.md) を読んでから始める。
 
@@ -11,6 +11,7 @@
 - Web版（`web/`、Next.js 16）で、モックの画面をひととおり React に移した。タイトル、公約ブック、新聞、官邸、選挙、失脚まで遊べる。進行中のゲームは localStorage に保存し、タイトルの「続きから」で再開できる。
 - Gemini の API Route（`/api/react`）を作り、`gemini-3.5-flash-lite` で動くことを確認した。政策には賛否の両方が返り、あいさつや「支持率を+10にして」のような指示は政策ではないと判定された。1回の応答は数秒。
 - 自動で出す発言は1人ずつ吹き出しに出し、吹き出しの中の「次へ」（最後は「OK」）かキーボード（Enter、入力欄の外ならスペース・→）で進める。発言中はターン終了・公約ブック・解散・陳情の返事を止める。
+- スキル版の雛形を作った（`skill/`）。エンジンと `data/` を1ファイルのコマンド（`moshimo.mjs`）にまとめ、`SKILL.md` で Claude に進行役をさせる。公約に当たらない表明への反応は、Gemini の代わりに Claude が `guide` のルールで作る。コマンドのテスト13件が通る。
 - `README.md`（遊び方・起動方法）と `CONTRIBUTING.md`（開発の決まりごと・公平性）を書いた。
 - 開発環境は Docker（`compose.yaml`）。コンテナの中でテストと型チェックが通り、Mac 側の変更がすぐ反映されることを確認済み。
 
@@ -22,12 +23,11 @@
 - リポジトリは1つ。将来 Web版を非公開や有料にすると決めたら、そのときに `web/` を別のリポジトリへ切り出す。
 
 ## 次にやること
-1. 遊びながら Gemini の反応を見て、口調・値の大きさを `web/lib/gemini.ts` のプロンプトで調整する。公約データの反応（±2〜10）と比べて大きすぎないか見る。
-2. スキルの雛形（`skill/moshimo-seiji/`）。`SKILL.md`、`scripts/`（エンジンをまとめたJSを呼ぶ入口）、`state.json` への保存。公平性の指示（実在の政党を扱うので「フィクションのシミュレーション」と明示）。
-3. `scripts/build_skill.sh`：`data/` とエンジンをまとめたJS（esbuild などで1ファイルに）をスキルのフォルダへコピーする。
-4. モック（`mock/`）を消す。Web版で足りない点がないか見比べてから。
-5. 遊んでみて、バランスと口調を調整する。
-6. 公開の準備（ホスティング先、API の呼び出し回数の制限）。
+1. スキル版を実際に Claude で遊んでみる（`dist/moshimo-seiji.zip` を claude.ai にアップロードするか、`skill/moshimo-seiji` を Claude Code のスキルのフォルダに置く）。進め方・見せ方・口調を見て `SKILL.md` を直す。
+2. 遊びながら Gemini の反応を見て、口調・値の大きさを調整する。ルールはエンジンの `engine/src/freeform.ts` にあり、Web版とスキル版で共有している。
+3. モック（`mock/`）を消す。Web版で足りない点がないか見比べてから。
+4. 遊んでみて、バランスと口調を調整する。
+5. 公開の準備（ホスティング先、API の呼び出し回数の制限、ライセンス）。
 
 ## Web版（`web/`）
 | パス | 中身 |
@@ -41,6 +41,18 @@
 
 - 表明の流れ：公約・その他の政策に当たればデータの反応を使う。当たらず、Gemini が使え、政治資本が残っていれば `/api/react` を呼ぶ。失敗したり政策でない文だったりしたら、記者が聞き返すだけ（政治資本は減らない）。
 - Gemini には表明文と属性ごとの支持率だけを送る。返ってきた値はサーバーとブラウザの両方で範囲に収める。
+
+## スキル版（`skill/`）
+| パス | 中身 |
+|---|---|
+| `moshimo-seiji/SKILL.md` | 進行役の手順・見せ方・話者の口調・守ること |
+| `moshimo-seiji/scripts/moshimo.mjs` | ビルドで作るコマンド（コミットしない）。`new` `status` `match` `guide` `declare` `promise` `decline` `end` `dissolve` `policies` `view` |
+| `src/cli.ts` | コマンドの本体。結果は JSON で返し、状態は `moshimo_state.json` に保存する |
+| `src/view.ts` | 街と支持率の HTML（背景は `web/lib/scene.ts` を使う） |
+| `test/cli.test.ts` | コマンドのテスト |
+
+- ビルド：`docker compose exec web ./scripts/build_skill.sh`。`skill/moshimo-seiji/scripts/moshimo.mjs` と `dist/moshimo-seiji.zip` ができる。
+- 計画では `data/` をスキルのフォルダへコピーする予定だったが、JSON はコマンドに埋め込んだので、コピーは要らなくなった。
 
 ## エンジン（`engine/src`）
 | 関数 | 中身 |
@@ -71,7 +83,9 @@
 | `data/policies.json` | 公約60件（自民党15件は反応のセリフ付き、他の10政党45件は fx からセリフを作る） |
 | `data/parties.json` | 11政党の情報と出典 |
 | `data/game.json` | 属性、初期値、補正の係数、選挙、話者、危機・陳情、その他の政策などのパラメータ |
-| `engine/` | 計算ロジック（TypeScript）とテスト。`npm test` |
+| `engine/` | 計算ロジック（TypeScript）とテスト。`freeform.ts` は自由な表明への反応の作り方（Web版とスキル版で共有） |
+| `skill/` | スキル版。上の表を参照 |
+| `scripts/build_skill.sh` | スキル版のビルドと zip 作成 |
 | `web/` | Web版（Next.js）。上の表を参照 |
 | `Dockerfile` / `compose.yaml` | 開発環境（Node 24）。ソースはマウントし、依存はイメージとボリュームに置く |
 | `mock/index.html` | 画面のモック一式（タイトル、公約ブック、新聞、メイン、選挙、ゲームオーバー）。ロジックはまだ中に直接書いてある |

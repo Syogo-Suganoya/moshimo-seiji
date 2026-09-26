@@ -237,6 +237,8 @@ moshimo-seiji/
   data/                       # 公約・政党・パラメータ（JSON。正本はここだけ）
   engine/                     # 計算ロジック（TypeScript）とテスト
   web/                        # Web版（Next.js）
+  skill/                      # Claude スキル版（SKILL.md とコマンドのソース）
+  scripts/build_skill.sh      # スキル版のビルドと zip 作成
   Dockerfile, compose.yaml    # 開発環境
   mock/index.html             # 最初のモック（画面・ロジック・情景SVGを1ファイルに収めたもの。Web版に移し終えたら消す）
   mock/data -> ../data        # モックもJSONを読む
@@ -263,6 +265,6 @@ moshimo-seiji/
 - **背景画像**：ターンごとの生成はやめ、事前に生成した7パターンを差し替える（4.6節）。生成コストと待ち時間がかからず、見た目も安定する。
 - **構成**：1つのリポジトリで、公約データ（`data/`）と計算ロジック（`engine/`、TypeScript）を Web版とClaudeスキル版で共有する。
   - Web版は Next.js（App Router + API Routes）。エンジンはブラウザで動かし、Gemini のキーはサーバー側（API Route）だけに置く。
-  - スキル版は、エンジンを1ファイルのJSにまとめて `node` で動かし、状態を `state.json` に保存する。
+  - スキル版は、エンジンと `data/*.json` を1ファイルのJS（`moshimo.mjs`）にまとめて `node` で動かし、状態を `moshimo_state.json` に保存する。公約に当たらない表明への反応は Claude が作る。ルールと出力の形は Gemini と同じもの（`engine/src/freeform.ts`）を使う。
 - **ゲームロジック**：状態更新・失脚判定・選挙計算を `engine/` の純粋な関数にまとめ、テストでバランスを確認する（何もしないと数年で失脚する程度を目安にする。今は9割以上が5年以内に失脚）。
 - **公約データの更新**：選挙や政党の再編があれば `data/parties.json` と `data/policies.json` を更新する。公明党・民主改革の会の独自公約が出たら差し替える。

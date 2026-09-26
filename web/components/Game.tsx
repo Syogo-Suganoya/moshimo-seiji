@@ -235,7 +235,7 @@ export default function Game() {
           const r = await fetch('/api/react', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ text, approval: approval(g), v: g.v }),
+            body: JSON.stringify({ text, v: g.v }),
           });
           const j = await r.json();
           if (j.policy) freeform = sanitizeFreeform(j.policy);

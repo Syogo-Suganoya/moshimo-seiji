@@ -11,7 +11,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   if (!hasKey()) return Response.json({ mode: 'mock', policy: null });
-  let body: { text?: unknown; approval?: unknown; v?: Record<string, unknown> };
+  let body: { text?: unknown; v?: Record<string, unknown> };
   try {
     body = await req.json();
   } catch {
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const num = (x: unknown, d: number) => (typeof x === 'number' && Number.isFinite(x) ? Math.max(0, Math.min(100, x)) : d);
   const v = Object.fromEntries(FAC_IDS.map((id) => [id, num(body.v?.[id], 50)])) as Record<FacId, number>;
   try {
-    const policy = await generateFreeform({ text, approval: num(body.approval, 50), v });
+    const policy = await generateFreeform({ text, v });
     return Response.json({ mode: 'gemini', policy });
   } catch (e) {
     console.error('[api/react] Gemini の呼び出しに失敗', e);

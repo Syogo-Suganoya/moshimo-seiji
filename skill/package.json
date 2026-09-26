@@ -1,0 +1,20 @@
+{
+  "name": "@moshimo/skill",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@moshimo/engine": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

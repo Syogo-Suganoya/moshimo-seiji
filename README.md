@@ -37,6 +37,16 @@ cp web/.env.local.example web/.env.local
 
 キーはサーバー側（Next.js の API Route）だけで使い、ブラウザには渡しません。Docker のイメージにも入れません。
 
+## Claude のスキルとして遊ぶ
+
+Claude に進行役をしてもらう版もあります。数値はスキルに入っているコマンド（エンジンを1ファイルにまとめたもの）で計算し、公約に当たらない表明には Claude が反応を作ります。
+
+```bash
+docker compose run --rm web ./scripts/build_skill.sh
+```
+
+`dist/moshimo-seiji.zip` ができるので、claude.ai のスキルとしてアップロードします。Claude Code で使うときは、`skill/moshimo-seiji` フォルダをスキルのフォルダ（例：`~/.claude/skills/`）に置きます。そのあと「もしも政治で遊びたい」と話しかけてください。
+
 ## よく使うコマンド
 
 | やりたいこと | コマンド |
@@ -44,6 +54,7 @@ cp web/.env.local.example web/.env.local
 | 起動 | `docker compose up` |
 | テスト | `docker compose exec web npm test` |
 | 型チェック | `docker compose exec web npm run typecheck` |
+| スキル版のビルド | `docker compose exec web ./scripts/build_skill.sh` |
 | 止める | `docker compose down` |
 | 依存やキャッシュを作り直す | `docker compose down -v` のあと `docker compose up --build` |
 
@@ -56,11 +67,12 @@ moshimo-seiji/
   data/        公約・政党・ゲームのパラメータ（JSON）。正本はここだけ
   engine/      計算ロジック（TypeScript）とテスト
   web/         Web版（Next.js）。画面と、Gemini を呼ぶ API Route
+  skill/       Claude スキル版。SKILL.md と、エンジンを1ファイルにまとめるビルド
   mock/        最初の画面モック（Web版に移し終えたら消す予定）
   docs/        設計書・進捗・画像生成プロンプトなど
 ```
 
-- 公約データと計算ロジックは、Web版とこれから作る Claude スキル版で共有します。
+- 公約データと計算ロジックは、Web版と Claude スキル版で共有します。
 - 設計の詳しい説明は [docs/design.md](docs/design.md)、進み具合と次にやることは [docs/progress.md](docs/progress.md) にあります。
 
 ## 公約データについて

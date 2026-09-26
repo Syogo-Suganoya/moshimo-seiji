@@ -3,11 +3,13 @@
   "private": true,
   "workspaces": [
     "engine",
-    "web"
+    "web",
+    "skill"
   ],
   "scripts": {
-    "test": "npm test -w engine",
-    "typecheck": "npm run typecheck -w engine && npm run typecheck -w web",
-    "dev": "npm run dev -w web"
+    "test": "npm test -w engine && npm test -w skill",
+    "typecheck": "npm run typecheck -w engine && npm run typecheck -w web && npm run typecheck -w skill",
+    "dev": "npm run dev -w web",
+    "build:skill": "./scripts/build_skill.sh"
   }
 }
