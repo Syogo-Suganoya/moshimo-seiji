@@ -62,6 +62,10 @@ Docker を使わない場合は、Node.js 24 以上でルートの `npm install`
 
 ## 構成
 
+![アーキテクチャ図](docs/architecture/architecture.png)
+
+図は [docs/architecture/architecture.py](docs/architecture/architecture.py)（Python の diagrams）から作っています。描き直すときは `docker compose run --rm diagrams` を実行します。
+
 ```
 moshimo-seiji/
   data/        公約・政党・ゲームのパラメータ（JSON）。正本はここだけ

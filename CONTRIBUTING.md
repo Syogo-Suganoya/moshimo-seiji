@@ -64,6 +64,10 @@ docker compose exec web npm run typecheck     # 型チェック
 - `skill/moshimo-seiji/scripts/moshimo.mjs` はビルドで作るファイルです。直接編集せず、コミットもしません。`docker compose exec web ./scripts/build_skill.sh` で作り直します。
 - コマンドの出力を変えたら、`skill/test/cli.test.ts` と `SKILL.md` の説明も合わせて直してください。
 
+### アーキテクチャ図を直す（`docs/architecture/`）
+
+- 技術スタックや大きな構成（使うフレームワーク、外部サービス、版の追加など）を変えたら、`docs/architecture/architecture.py` を直し、`docker compose run --rm diagrams` で `architecture.png` を描き直してコミットしてください。
+
 ## 公平性について
 
 実在の政党と公約を扱うので、次のことを守ります。

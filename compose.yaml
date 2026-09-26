@@ -21,6 +21,15 @@ services:
     # package.json が変わっていたらここで入れ直してから起動する
     command: sh -c "npm install --no-audit --no-fund && npm run dev"
 
+  # アーキテクチャ図を描く：docker compose run --rm diagrams
+  # （profiles を付けているので、docker compose up では起動しない）
+  diagrams:
+    build: docs/architecture
+    profiles: ["tools"]
+    volumes:
+      - .:/work
+    command: python docs/architecture/architecture.py
+
 volumes:
   node_modules:
   engine_node_modules:

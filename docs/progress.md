@@ -86,6 +86,7 @@
 | `engine/` | 計算ロジック（TypeScript）とテスト。`freeform.ts` は自由な表明への反応の作り方（Web版とスキル版で共有） |
 | `skill/` | スキル版。上の表を参照 |
 | `scripts/build_skill.sh` | スキル版のビルドと zip 作成 |
+| `docs/architecture/` | アーキテクチャ図。`architecture.py`（diagrams）から `architecture.png` を作る。`docker compose run --rm diagrams` |
 | `web/` | Web版（Next.js）。上の表を参照 |
 | `Dockerfile` / `compose.yaml` | 開発環境（Node 24）。ソースはマウントし、依存はイメージとボリュームに置く |
 | `mock/index.html` | 画面のモック一式（タイトル、公約ブック、新聞、メイン、選挙、ゲームオーバー）。ロジックはまだ中に直接書いてある |

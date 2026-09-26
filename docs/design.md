@@ -232,6 +232,11 @@ Sources: [Frostpunk Book of Laws](https://frostpunk.fandom.com/wiki/Book_of_Laws
   - 公約ブックの政党タブ・分野タブは横スクロールの1行。
 
 ## 7. 構成と確認方法
+
+![アーキテクチャ図](architecture/architecture.png)
+
+図は `docs/architecture/architecture.py`（Python の diagrams）から作る。構成を変えたら `docker compose run --rm diagrams` で描き直す。
+
 ```
 moshimo-seiji/
   data/                       # 公約・政党・パラメータ（JSON。正本はここだけ）
@@ -239,6 +244,7 @@ moshimo-seiji/
   web/                        # Web版（Next.js）
   skill/                      # Claude スキル版（SKILL.md とコマンドのソース）
   scripts/build_skill.sh      # スキル版のビルドと zip 作成
+  docs/architecture/          # アーキテクチャ図（diagrams のスクリプトと PNG、描くための Dockerfile）
   Dockerfile, compose.yaml    # 開発環境
   mock/index.html             # 最初のモック（画面・ロジック・情景SVGを1ファイルに収めたもの。Web版に移し終えたら消す）
   mock/data -> ../data        # モックもJSONを読む
