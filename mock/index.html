@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>もしも政治 モック</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;700;800&family=Rubik:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<script src="data/ldp_policies.js?v=5"></script>
+<script src="data/parties.js?v=6"></script>
+<style>
+:root{
+  --navy:#1f2244; --navy2:#2d3160; --cream:#fff5e1; --cream2:#f3e6c8;
+  --sun:#ffc93c; --sun2:#e8a916; --coral:#ff6b57; --coral2:#d9493a; --mint:#35cfa1; --mint2:#20a47d;
+  --sky:#5ab4ff; --grape:#8c6cf2; --mute:#8c8aa6;
+  --ol:3px solid var(--navy); --sh:0 5px 0 var(--navy);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--navy);color:var(--navy);font-family:"M PLUS Rounded 1c",system-ui,sans-serif;font-weight:700;font-size:14px}
+.disp{font-family:"Dela Gothic One",sans-serif;font-weight:400}
+.num{font-family:"Rubik",sans-serif;font-weight:800}
+button{font:inherit;color:inherit;cursor:pointer}
+.screen{display:none;position:fixed;inset:0;overflow:auto}.screen.on{display:block}
+
+/* パネル・ボタン */
+.panel{background:var(--cream);border:var(--ol);border-radius:14px;box-shadow:var(--sh)}
+.btn{border:var(--ol);border-radius:12px;padding:10px 20px;background:var(--cream);box-shadow:0 5px 0 var(--navy);font-weight:800;letter-spacing:.04em;transition:transform .06s,box-shadow .06s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--navy)}
+.btn.sun{background:var(--sun)}.btn.coral{background:var(--coral);color:#fff}.btn.mint{background:var(--mint)}.btn.navy{background:var(--navy2);color:var(--cream)}
+.btn:disabled{filter:grayscale(1);opacity:.55;pointer-events:none}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border:2px solid var(--navy);border-radius:999px;font-size:11px;font-weight:800}
+
+/* トランジション（斜めストライプのワイプ） */
+.wipe{position:fixed;inset:0;z-index:300;pointer-events:none;display:grid;place-items:center;overflow:hidden}
+.wipe .bg{position:absolute;inset:-20%;background:repeating-linear-gradient(-55deg,var(--navy) 0 60px,var(--navy2) 60px 120px);transform:translateX(-130%) skewX(-12deg);transition:transform .5s cubic-bezier(.7,0,.3,1)}
+.wipe.on{pointer-events:auto}.wipe.on .bg{transform:translateX(0) skewX(-12deg)}
+.wipe.out .bg{transform:translateX(130%) skewX(-12deg)}
+.wipe .tx{position:relative;text-align:center;color:var(--cream);opacity:0;transform:scale(.8);transition:.3s .25s}
+.wipe.on .tx{opacity:1;transform:none}.wipe.out .tx{opacity:0;transition-delay:0s}
+.wipe .tx small{display:inline-block;background:var(--sun);color:var(--navy);padding:3px 14px;border-radius:999px;font-size:13px;margin-bottom:12px}
+.wipe .tx b{display:block;font-size:clamp(34px,7vw,64px);text-shadow:0 5px 0 #0006}
+
+.modal-bg{position:fixed;inset:0;z-index:250;background:#1f2244b3;display:none;place-items:center;padding:16px}
+.modal-bg.on{display:grid}
+.modal{width:min(440px,100%);padding:24px;text-align:center;animation:pop .3s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}}
+.modal h3{margin:0 0 10px;font-size:22px}
+.modal p{margin:0 0 20px;font-size:13.5px;line-height:1.8;font-weight:500}
+.modal p.right{text-align:right}
+.mk .pin{cursor:pointer}
+.bub.peek .who::after{content:'のいまの気持ち';color:var(--mute)}
+.bub .sup{display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:2px dashed #1f224433;font-size:11px}
+.bub .sup .sb{flex:1;height:8px;border:2px solid var(--navy);border-radius:999px;background:#eadcbc;overflow:hidden;min-width:90px}
+.bub .sup .sb i{display:block;height:100%}
+.bub .sup b{font-size:14px}
+.modal .row{display:flex;gap:10px;justify-content:center}
+.toast{position:fixed;left:50%;top:90px;transform:translateX(-50%);z-index:280;padding:8px 16px;display:none;white-space:nowrap;font-size:13px}
+.toast.on{display:block;animation:pop .25s}
+
+/* ===== タイトル ===== */
+#title .scn,#over .scn{position:absolute;inset:0}
+#title .scn svg,#over .scn svg{width:100%;height:100%;display:block}
+.t-wrap{position:relative;min-height:100%;display:grid;place-items:center;padding:24px 16px;text-align:center}
+.logo{margin:0;font-size:clamp(58px,12vw,128px);line-height:1;color:var(--sun);-webkit-text-stroke:4px var(--navy);paint-order:stroke fill;text-shadow:0 8px 0 var(--navy);letter-spacing:.02em;transform:rotate(-3deg)}
+.logo span{color:var(--coral)}
+.sub{display:inline-block;margin-top:18px;background:var(--navy);color:var(--cream);padding:6px 16px;border-radius:999px;font-size:13px}
+.t-menu{display:flex;flex-direction:column;gap:14px;align-items:center;margin-top:26px}
+.t-menu .btn{width:250px;font-size:17px;padding:12px}
+.t-rec{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+.t-rec div{padding:6px 14px;font-size:11px}
+.t-rec b{display:block;font-size:20px}
+
+/* ===== 新聞 ===== */
+#news,#over,#book{background:var(--navy);background-image:radial-gradient(#ffffff10 2px,transparent 2px);background-size:22px 22px}
+.center{min-height:100%;display:grid;place-items:center;padding:28px 16px}
+.center>div{width:min(820px,100%)}
+.np{width:100%;padding:18px 22px;transform:rotate(-1.5deg);animation:npin .6s cubic-bezier(.2,1.4,.4,1)}
+@keyframes npin{from{transform:rotate(-14deg) scale(1.5);opacity:0}}
+.np-top{display:flex;justify-content:space-between;align-items:center;border-bottom:var(--ol);padding-bottom:8px}
+.np-top .mast{font-size:30px}
+.np-top .date{font-size:12px}
+.np-body{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;margin-top:14px}
+.np h1{margin:0 0 10px;font-size:clamp(26px,4.2vw,40px);line-height:1.15}
+.np p{margin:0;font-size:13px;line-height:1.8;font-weight:500}
+.np .photo{border:var(--ol);border-radius:10px;overflow:hidden;aspect-ratio:16/9}
+.np .photo svg{width:100%;height:100%;display:block}
+.np-foot{display:grid;grid-template-columns:130px repeat(3,1fr);gap:14px;margin-top:14px;border-top:2px dashed var(--navy);padding-top:12px}
+.np-foot h4{margin:0 0 4px;font-size:14px}
+.np-foot p{font-size:12px}
+.poll{background:var(--navy);color:var(--cream);border-radius:10px;padding:8px;text-align:center}
+.poll small{font-size:10px}
+.poll b{display:block;font-size:38px;line-height:1.05;color:var(--sun)}
+.go{margin-top:22px;text-align:center}
+
+/* ===== メイン ===== */
+.world{position:absolute;inset:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;background:var(--navy)}
+.world::-webkit-scrollbar{display:none}
+.stage{position:absolute;left:0;bottom:0;width:max(100vw,calc(100vh*16/9),900px);aspect-ratio:16/9}
+.layer{position:absolute;inset:0;transition:opacity 1.6s ease}
+.layer svg{width:100%;height:100%;display:block}
+.rain{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(105deg,#fff0 0 16px,#cfe6ff55 16px 18px);background-size:200px 200px;animation:rain .35s linear infinite;opacity:0;transition:opacity 1s}
+@keyframes rain{to{background-position:-40px 200px}}
+.flash{position:absolute;inset:0;pointer-events:none;background:#fff;opacity:0}
+.flash.on{animation:flash 7s infinite}
+@keyframes flash{0%,92%,100%{opacity:0}93%{opacity:.6}94%{opacity:0}95.5%{opacity:.4}96.5%{opacity:0}}
+.blink{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:.15}}
+.bob{animation:bob 2.4s ease-in-out infinite;transform-box:fill-box}@keyframes bob{50%{transform:translateY(-4px)}}
+
+/* HUD */
+.hud{position:fixed;top:12px;left:12px;right:12px;z-index:30;display:flex;gap:10px;align-items:flex-start;pointer-events:none}
+.hud>*{pointer-events:auto}
+.pm{display:flex;align-items:center;gap:10px;padding:6px 14px 6px 6px}
+.pm .av{width:44px;height:44px;border-radius:12px;background:var(--sky);border:var(--ol);display:grid;place-items:center;font-size:20px;color:var(--navy)}
+.pm small{display:block;font-size:10px;color:var(--mute)}
+.pm b{font-size:17px}
+.meters{flex:1;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.mt{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px}
+.mt .ic{width:34px;height:34px;border-radius:10px;border:var(--ol);display:grid;place-items:center;font-size:15px;color:#fff}
+.mt .lb{font-size:10px;color:var(--mute);display:block}
+.mt .bar{width:min(16vw,170px);height:16px;border:var(--ol);border-radius:999px;background:#e6d6b3;position:relative;overflow:hidden}
+.mt .bar i{position:absolute;inset:0 auto 0 0;border-radius:999px;transition:width .9s cubic-bezier(.2,1.3,.4,1)}
+.mt .bar i::after{content:"";position:absolute;left:6px;right:6px;top:2px;height:3px;border-radius:3px;background:#fff8}
+.mt .bar .th{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed var(--navy);opacity:.5}
+.mt .v{font-size:20px;min-width:52px;text-align:right}
+.mt .d{font-size:11px;min-width:30px}
+.mt.shake{animation:shake .4s 2}
+@keyframes shake{25%{transform:translateX(-4px) rotate(-1deg)}75%{transform:translateX(4px) rotate(1deg)}}
+.res{display:flex;gap:14px;align-items:center;padding:8px 14px}
+.res .lb{font-size:10px;color:var(--mute);display:block}
+.bolts{display:flex;gap:3px;font-size:15px}
+.bolts i{color:#d8c9a6}.bolts i.on{color:var(--sun2);filter:drop-shadow(0 1px 0 var(--navy))}
+.res .v{font-size:20px}
+.up{color:var(--mint2)}.dn{color:var(--coral2)}
+#mtA{cursor:help}
+.aptip{position:fixed;top:84px;left:50%;transform:translate(-50%,-6px);z-index:45;width:min(360px,calc(100vw - 16px));padding:12px 14px;opacity:0;pointer-events:none;transition:.2s}
+.aptip.on{opacity:1;transform:translate(-50%,0)}
+.aptip h4{margin:0 0 8px;font-size:13px;display:flex;justify-content:space-between;align-items:baseline}
+.aptip h4 small{font-size:10px;color:var(--mute);font-weight:700}
+.aptip .row{display:grid;grid-template-columns:78px 34px 1fr 36px;gap:6px;align-items:center;font-size:11.5px;padding:2px 0}
+.aptip .row small{color:var(--mute);font-size:10px;text-align:right}
+.aptip .bar{height:9px;border:2px solid var(--navy);border-radius:999px;background:#eadcbc;overflow:hidden}
+.aptip .bar i{display:block;height:100%}
+.aptip .row b{text-align:right;font-family:Rubik;font-size:12px}
+.aptip .sep{border-top:2px dashed #1f224433;margin:6px 0;font-size:10px;color:var(--mute);padding-top:4px}
+.aptip .meta{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11px;margin-top:4px}
+.aptip .meta b{font-family:Rubik}
+
+/* 街の住民 */
+.mk{position:absolute;transform:translate(-50%,-100%);z-index:5;display:flex;flex-direction:column;align-items:center}
+.mk .pin{position:relative;width:48px;height:48px;border-radius:50%;background:var(--cream);border:var(--ol);box-shadow:0 4px 0 var(--navy);display:grid;place-items:center;font-size:19px}
+.mk .pin svg.ring{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);transform:rotate(-90deg)}
+.mk .face{position:absolute;right:-10px;top:-8px;width:22px;height:22px;border-radius:50%;background:var(--cream);border:2px solid var(--navy);display:grid;place-items:center;font-size:12px}
+.mk .nm{margin-top:8px;font-size:13px;padding:2px 10px;border-radius:999px;background:var(--navy);color:var(--cream);white-space:nowrap}
+.mk .nm b{color:var(--sun)}
+.mk.low .pin{animation:shake .6s infinite}
+.mk.sq .pin{border-radius:12px}
+.mk.sq .pin svg.ring{display:none}
+.mk.talk .pin{transform:scale(1.12);transition:transform .2s}
+.fnum{position:absolute;left:50%;top:-8px;transform:translateX(-50%);font-size:22px;-webkit-text-stroke:3px var(--navy);paint-order:stroke fill;opacity:0;pointer-events:none;white-space:nowrap;z-index:3}
+.fnum.show{animation:fnum 1.9s ease forwards}
+@keyframes fnum{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}15%{opacity:1;transform:translate(-50%,0) scale(1.15)}75%{opacity:1;transform:translate(-50%,-14px)}100%{opacity:0;transform:translate(-50%,-30px)}}
+.fnum.p{color:var(--mint)}.fnum.m{color:var(--coral)}
+.bub{position:absolute;bottom:calc(100% + 16px);left:50%;width:max-content;max-width:260px;transform:translateX(-50%) scale(.5);transform-origin:bottom center;opacity:0;transition:.28s cubic-bezier(.2,1.6,.4,1);pointer-events:none;z-index:20;
+  background:#fff;border:var(--ol);border-radius:16px;box-shadow:0 5px 0 var(--navy);padding:8px 12px 10px;text-align:left}
+.bub.on{opacity:1;transform:translateX(-50%) scale(1)}
+.bub::after{content:"";position:absolute;left:50%;top:100%;width:16px;height:16px;background:#fff;border-right:var(--ol);border-bottom:var(--ol);transform:translate(-50%,-8px) rotate(45deg)}
+.bub .who{display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:3px}
+.bub .who .n{background:var(--navy);color:var(--cream);padding:1px 8px;border-radius:999px}
+.bub .who .r{color:var(--mute)}
+.bub .who i{font-size:15px}
+.bub p{margin:0;font-size:13.5px;line-height:1.55;font-weight:700}
+.mk.edge-l .bub{left:-12px;transform:scale(.5);transform-origin:bottom left}.mk.edge-l .bub.on{transform:scale(1)}.mk.edge-l .bub::after{left:36px}
+.mk.edge-r .bub{left:auto;right:-12px;transform:scale(.5);transform-origin:bottom right}.mk.edge-r .bub.on{transform:scale(1)}.mk.edge-r .bub::after{left:auto;right:28px;transform:translate(0,-8px) rotate(45deg)}
+.stmt{position:fixed;left:50%;bottom:108px;transform:translate(-50%,10px) scale(.9);z-index:29;width:min(640px,calc(100vw - 260px));padding:10px 14px;background:var(--sun);opacity:0;transition:.3s cubic-bezier(.2,1.5,.4,1);pointer-events:none}
+.stmt.on{opacity:1;transform:translate(-50%,0)}
+.stmt small{display:inline-flex;align-items:center;gap:6px;font-size:11px;background:var(--navy);color:var(--cream);padding:1px 10px;border-radius:999px;margin-bottom:4px}
+.stmt p{margin:0;font-size:15px;line-height:1.5}
+
+/* 危機・陳情 */
+.quests{position:fixed;left:12px;top:88px;z-index:30;display:flex;flex-direction:column;gap:10px;width:min(290px,calc(100vw - 24px))}
+.qc{overflow:hidden;animation:qin .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes qin{from{transform:translateX(-120%)}}
+.qc .qh{display:flex;align-items:center;gap:8px;padding:7px 10px;color:#fff;border-bottom:var(--ol)}
+.qc.crisis .qh{background:var(--coral)}.qc.demand .qh{background:var(--sky);color:var(--navy)}
+.qc .qh b{flex:1;font-size:13.5px}
+.qc .pips{display:flex;gap:3px}.qc .pips i{width:10px;height:10px;border-radius:3px;border:2px solid var(--navy);background:#fff}.qc .pips i.off{background:transparent;opacity:.5}
+.qc .qb{padding:8px 12px 10px;font-size:12px;line-height:1.6;font-weight:500}
+.qc .qa{display:flex;gap:8px;margin-top:8px}.qc .qa .btn{flex:1;padding:5px 0;font-size:12px;box-shadow:0 3px 0 var(--navy)}
+.qc .ok{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;font-weight:800;color:var(--mint2)}
+.qc.gone{transition:.45s;opacity:0;transform:translateX(-120%)}
+
+/* 下部：政策入力 */
+.dock{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:30;width:min(740px,calc(100vw - 260px));padding:10px}
+.dock .row{display:flex;gap:8px;align-items:stretch}
+.dock .bookbtn{flex:none;padding:0 12px;font-size:12px;flex-direction:column;gap:2px;box-shadow:0 4px 0 var(--navy)}
+.dock .bookbtn i{font-size:18px}
+.dock textarea{flex:1;resize:none;border:var(--ol);border-radius:12px;background:#fff;padding:9px 12px;font:inherit;font-weight:700;font-size:14.5px;line-height:1.45;outline:none;height:58px;color:var(--navy)}
+.dock textarea:focus{box-shadow:0 0 0 4px #ffc93c88}
+.dock textarea::placeholder{color:#b1acc4;font-weight:500}
+.dock .say{padding:0 16px;flex-direction:column;gap:0;font-size:16px}
+.dock .say small{font-size:10.5px;display:flex;align-items:center;gap:3px}
+.endturn{position:fixed;right:18px;bottom:16px;z-index:31;width:104px;height:104px;border-radius:50%;border:var(--ol);background:var(--coral);color:#fff;box-shadow:0 7px 0 var(--navy);font-size:13px;font-weight:800;line-height:1.25;transition:transform .06s}
+.endturn i{display:block;font-size:30px;margin-bottom:2px}
+.endturn:hover{transform:rotate(-4deg) scale(1.03)}
+.endturn:active{transform:translateY(5px);box-shadow:0 2px 0 var(--navy)}
+.tools{position:fixed;left:12px;bottom:16px;z-index:31;display:flex;gap:8px}
+.tools .btn{width:56px;height:56px;padding:0;flex-direction:column;gap:1px;font-size:10px}
+.tools .btn i{font-size:18px}
+.cap{position:fixed;left:50%;bottom:112px;transform:translateX(-50%);z-index:25;padding:4px 14px;font-size:12px;border-radius:999px;background:var(--navy);color:var(--cream);opacity:0;transition:opacity 1s;white-space:nowrap}
+.cap.on{opacity:.92}
+.gen{position:fixed;right:12px;top:88px;z-index:30;font-size:10px;padding:3px 10px;border-radius:999px;background:#1f2244cc;color:var(--cream)}
+
+/* ログ */
+.log{position:fixed;right:12px;top:88px;bottom:136px;z-index:40;width:min(360px,calc(100vw - 24px));transform:translateX(calc(100% + 30px));transition:transform .35s cubic-bezier(.2,1.2,.4,1);display:flex;flex-direction:column;overflow:hidden}
+.log.on{transform:none}
+.log h3{margin:0;padding:10px 14px;font-size:16px;display:flex;justify-content:space-between;align-items:center;background:var(--navy);color:var(--cream)}
+.log h3 button{background:none;border:none;color:var(--cream);font-size:16px}
+.log .tl{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.ln{display:flex;gap:8px;font-size:12.5px;line-height:1.55;font-weight:500}
+.ln .a{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--navy);background:#fff;display:grid;place-items:center;font-size:12px}
+.ln .t b{font-weight:800}.ln .fx{font-size:11px;font-weight:800}.ln .fx span{margin-right:6px}
+.ln.me .a{background:var(--sun)}
+.ln.sys{justify-content:center;font-size:11px;color:var(--mute);font-weight:800}
+
+/* ===== 公約ブック ===== */
+.book{max-width:1100px;margin:0 auto;padding:22px 16px 40px}
+.book-h{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px;color:var(--cream)}
+.book-h h2{margin:0;font-size:30px;color:var(--sun);-webkit-text-stroke:2px var(--navy);paint-order:stroke fill}
+.book-h p{margin:0;font-size:12px;opacity:.8;font-weight:500;flex:1;min-width:240px;line-height:1.6}
+.book-h .btn{margin-left:auto}
+.parties{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.parties button{display:flex;align-items:center;gap:6px;border:var(--ol);border-color:var(--cream);background:transparent;color:var(--cream);border-radius:10px;padding:5px 12px;font-size:13px;font-weight:800}
+.parties button i{width:10px;height:10px;border-radius:50%;border:2px solid var(--cream)}
+.parties button small{font-family:Rubik;font-size:11px;opacity:.8}
+.parties button.on{background:var(--cream);color:var(--navy);box-shadow:0 4px 0 #0006}
+.pinfo{color:var(--cream);font-size:12px;font-weight:500;margin:-2px 0 12px;line-height:1.6;opacity:.9}
+.pinfo b{color:var(--sun)}
+.pbadge{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:999px;border:2px solid var(--navy);font-size:10px;font-weight:800;color:#fff;margin-right:4px}
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.cats button{border:2px solid var(--cream);background:transparent;color:var(--cream);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:800}
+.cats button.on{background:var(--sun);color:var(--navy);border-color:var(--sun)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.pc{display:flex;flex-direction:column;overflow:hidden}
+.pc .ph{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:var(--ol);background:#fff}
+.pc .ph .ic{flex:none;width:40px;height:40px;border-radius:10px;border:var(--ol);background:var(--pc,var(--sky));display:grid;place-items:center;font-size:17px}
+.pc .ph b{font-size:15px;line-height:1.35;display:block}
+.pc .ph small{font-size:10px;color:var(--mute)}
+.pc .pb{padding:10px 12px;flex:1;display:flex;flex-direction:column;gap:10px}
+.pc .sum{font-size:12px;line-height:1.7;font-weight:500;margin:0}
+.pc .sim{display:flex;gap:8px}
+.pc .sim div{flex:1;border:2px solid var(--navy);border-radius:10px;padding:4px 8px;background:#fff}
+.pc .sim small{display:block;font-size:10px;color:var(--mute)}
+.pc .sim b{font-size:18px}
+.fxl{display:grid;grid-template-columns:70px 1fr 30px;gap:3px 8px;align-items:center;font-size:11px}
+.fxl .bar{height:8px;position:relative;background:#eadcbc;border-radius:4px}
+.fxl .bar i{position:absolute;top:0;bottom:0;border-radius:4px}
+.fxl .bar::before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;border-left:2px solid var(--navy);opacity:.4}
+.fxl b{text-align:right;font-family:Rubik;font-size:11px}
+.pc .pf{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-top:2px dashed #1f224455}
+.pc .pf .btn{padding:6px 12px;font-size:12px;box-shadow:0 3px 0 var(--navy)}
+
+/* ===== 選挙 ===== */
+#election{background:var(--navy);color:var(--cream)}
+.el{max-width:860px;margin:0 auto;padding:26px 16px;text-align:center}
+.el .tag{display:inline-block;background:var(--coral);color:#fff;padding:4px 18px;border:var(--ol);border-color:var(--cream);border-radius:999px;font-size:14px}
+.el h2{margin:12px 0;font-size:clamp(22px,4vw,34px)}
+.hemi{width:100%;max-width:620px;display:block;margin:0 auto}
+.tally{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.tally div{padding:6px 12px;color:var(--navy);min-width:84px}
+.tally small{display:block;font-size:11px}
+.tally b{font-size:26px}
+.res-banner{margin:18px auto 0;display:inline-block;padding:10px 30px;font-size:clamp(26px,5vw,40px);border:var(--ol);border-color:var(--cream);border-radius:16px;transform:rotate(-2deg) scale(.6);opacity:0;transition:.4s cubic-bezier(.2,1.6,.4,1)}
+.res-banner.on{opacity:1;transform:rotate(-2deg) scale(1)}
+
+/* ===== 失脚 ===== */
+.ov{position:relative;min-height:100%;display:grid;place-items:center;padding:24px 16px;text-align:center}
+.ov-t{margin:0;font-size:clamp(56px,12vw,120px);color:var(--coral);-webkit-text-stroke:5px var(--navy);paint-order:stroke fill;text-shadow:0 8px 0 var(--navy);transform:rotate(-4deg);animation:slam .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes slam{from{transform:rotate(-4deg) scale(3);opacity:0}}
+.ov-r{display:inline-block;margin:14px 0 18px;max-width:560px;padding:10px 16px;font-size:13.5px;line-height:1.7;font-weight:500}
+.badge{display:inline-flex;align-items:center;gap:10px;padding:8px 18px;background:var(--sun);margin-bottom:16px}
+.badge i{font-size:22px}.badge small{display:block;font-size:10px;text-align:left}.badge b{font-size:20px}
+.stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.stats div{padding:8px 16px;min-width:120px}.stats small{display:block;font-size:10px;color:var(--mute)}.stats b{font-size:24px}
+.rank{max-width:400px;margin:0 auto 18px;padding:8px 14px;text-align:left}
+.rank div{display:grid;grid-template-columns:28px 1fr auto;padding:5px 0;border-bottom:2px dashed #1f224433;font-size:13px}
+.rank div:last-child{border:none}
+.rank .me{color:var(--coral2)}
+
+@media (max-width:760px){
+  .hud{flex-wrap:wrap;top:8px;left:8px;right:8px;gap:6px}
+  .pm{padding:4px 10px 4px 4px}.pm .av{width:34px;height:34px;font-size:15px}.pm b{font-size:14px}
+  .meters{order:3;width:100%;flex-wrap:nowrap;gap:6px}
+  .mt{flex:1;padding:4px 8px 4px 4px;gap:5px}.mt .ic{width:26px;height:26px;font-size:12px}.mt .bar{width:100%;height:12px}.mt>div:nth-child(2){flex:1}.mt .v{font-size:15px;min-width:38px}.mt .d{display:none}
+  .res{padding:4px 10px;margin-left:auto}.res .v{font-size:16px}
+  .quests{top:124px;left:8px;width:calc(100vw - 16px)}
+  .gen{display:none}
+  .dock{width:calc(100vw - 16px);bottom:92px;padding:8px}
+  .endturn{width:74px;height:74px;right:10px;bottom:8px;font-size:11px}.endturn i{font-size:20px}
+  .tools{bottom:12px;left:8px}.tools .btn{width:50px;height:50px}
+  .cap{bottom:200px}
+  .stmt{width:calc(100vw - 16px);bottom:170px;padding:8px 12px}.stmt p{font-size:13.5px}
+  .world{bottom:168px}
+  .parties,.cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-16px;margin-right:-16px;padding:0 16px 4px}
+  .parties button,.cats button{flex:none}
+  .book-h h2{font-size:24px}
+  .toast{top:auto;bottom:240px;white-space:normal;max-width:calc(100vw - 32px);text-align:center}
+  .qc .qh{padding:5px 10px}.qc .qh b{font-size:12.5px}
+  .qc .qb{padding:6px 10px 8px;font-size:11.5px;line-height:1.5}
+  .qc .qa{margin-top:6px}
+  .mk .pin{width:42px;height:42px;font-size:17px}
+  .bub{max-width:220px}.bub p{font-size:12.5px}
+  .log{top:124px;bottom:190px;right:8px}
+  .np-body{grid-template-columns:1fr}.np-foot{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="toast panel" id="toast"></div>
+<div class="wipe" id="wipe"><div class="bg"></div><div class="tx"><small id="wSub"></small><b class="disp" id="wMain"></b></div></div>
+<div class="modal-bg" id="modal"><div class="modal panel"><h3 class="disp" id="mTitle"></h3><p id="mText"></p><div class="row" id="mRow"></div></div></div>
+
+<!-- ===== タイトル ===== -->
+<section id="title" class="screen on">
+  <div class="scn" id="titleScene"></div>
+  <div class="t-wrap"><div>
+    <h1 class="logo disp">もしも<span>政治</span></h1>
+    <div class="sub">あなたが総理なら、この国を何年もたせられる？</div>
+    <div class="t-menu">
+      <button class="btn sun" id="btnStart"><i class="fa-solid fa-play"></i>組閣する</button>
+      <button class="btn" id="btnBookT"><i class="fa-solid fa-book-open"></i>公約ブック</button>
+      <button class="btn" id="btnHow"><i class="fa-solid fa-circle-question"></i>遊び方</button>
+    </div>
+    <div class="t-rec" id="records"></div>
+  </div></div>
+</section>
+
+<!-- ===== 公約ブック ===== -->
+<section id="book" class="screen">
+  <div class="book">
+    <div class="book-h">
+      <h2 class="disp"><i class="fa-solid fa-book-open"></i> 公約ブック</h2>
+      <p>各政党の直近の公約（主に2026年2月の第51回衆院選）をもとにしたモックデータです。2026年9月時点で整理。支持率の変化は、ゲーム開始時点で1回表明した場合の<b>ゲーム内シミュレーション</b>で、実際の世論を示すものではありません。</p>
+      <button class="btn sun" id="btnBookBack"><i class="fa-solid fa-arrow-left"></i><span id="bookBackLbl">戻る</span></button>
+    </div>
+    <div class="parties" id="ptabs"></div>
+    <div class="pinfo" id="pinfo"></div>
+    <div class="cats" id="cats"></div>
+    <div class="cards" id="cards"></div>
+  </div>
+</section>
+
+<!-- ===== 新聞 ===== -->
+<section id="news" class="screen">
+  <div class="center"><div>
+    <div class="np panel" id="paper"></div>
+    <div class="go"><button class="btn sun" id="btnOffice">官邸へ <i class="fa-solid fa-arrow-right"></i></button></div>
+  </div></div>
+</section>
+
+<!-- ===== メイン ===== -->
+<section id="main" class="screen">
+  <div class="world" id="world"><div class="stage" id="stage">
+    <div class="layer" id="sceneA"></div><div class="layer" id="sceneB" style="opacity:0"></div>
+    <div class="rain" id="rain"></div><div class="flash" id="flash"></div>
+    <div id="markers"></div>
+  </div></div>
+
+  <div class="hud">
+    <div class="pm panel"><div class="av"><i class="fa-solid fa-user-tie"></i></div><div><small id="hTenure"></small><b id="hDate"></b></div></div>
+    <div class="meters">
+      <div class="mt panel" id="mtA" tabindex="0"><div class="ic" style="background:var(--mint)"><i class="fa-solid fa-heart"></i></div><div><span class="lb">内閣支持率</span><div class="bar"><i id="hABar" style="background:var(--mint)"></i><span class="th" style="left:20%"></span></div></div><span class="v num" id="hA"></span><span class="d num" id="hAd"></span></div>
+          </div>
+    <div class="res panel">
+      <div><span class="lb">政治資本</span><div class="bolts" id="hBolts"></div></div>
+      <div><span class="lb">選挙まで</span><span class="v num" id="hElec"></span></div>
+    </div>
+  </div>
+  <div class="aptip panel" id="apTip"></div>
+  <div class="gen" title="本実装では、国の状態から毎ターン情景画像を生成します"><i class="fa-regular fa-image"></i> 情景：モック（本番はAI生成）</div>
+
+  <div class="quests" id="quests"></div>
+  <div class="cap" id="cap"></div>
+  <div class="stmt panel" id="stmt"><small><i class="fa-solid fa-microphone-lines"></i>総理会見</small><p></p></div>
+
+  <div class="tools">
+    <button class="btn" id="btnLog"><i class="fa-solid fa-comments"></i>ログ</button>
+    <button class="btn" id="btnDissolve"><i class="fa-solid fa-check-to-slot"></i>解散</button>
+  </div>
+  <div class="dock panel">
+    <div class="row">
+      <button class="btn bookbtn" id="btnBookM"><i class="fa-solid fa-scroll"></i>政策</button>
+      <textarea id="chatIn" placeholder="総理として、政策を自分の言葉で表明しよう"></textarea>
+      <button class="btn sun say" id="btnSay">表明<small><i class="fa-solid fa-bolt"></i>×1</small></button>
+    </div>
+  </div>
+  <button class="endturn" id="btnEnd"><i class="fa-solid fa-forward"></i>ターン<br>終了</button>
+  <div class="log panel" id="log"><h3 class="disp">ログ<button id="btnLogX"><i class="fa-solid fa-xmark"></i></button></h3><div class="tl" id="tl"></div></div>
+</section>
+
+<!-- ===== 選挙 ===== -->
+<section id="election" class="screen">
+  <div class="el">
+    <span class="tag disp">開票速報</span>
+    <h2 class="disp" id="eTitle"></h2>
+    <svg class="hemi" id="hemi" viewBox="0 0 640 340"></svg>
+    <div class="tally" id="tally"></div>
+    <div class="res-banner disp" id="eRes"></div>
+    <div style="margin-top:22px;min-height:52px"><button class="btn sun" id="btnAfterElec" style="display:none"></button></div>
+  </div>
+</section>
+
+<!-- ===== 失脚 ===== -->
+<section id="over" class="screen">
+  <div class="scn" id="overScene" style="opacity:.35"></div>
+  <div class="ov"><div>
+    <h1 class="ov-t disp">失脚！</h1>
+    <div><div class="ov-r panel" id="oReason"></div></div>
+    <div class="badge panel"><i class="fa-solid fa-award"></i><div><small>獲得称号</small><b class="disp" id="oTitle"></b></div></div>
+    <div class="stats" id="oStats"></div>
+    <div class="rank panel" id="oRank"></div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn sun" id="btnRetry"><i class="fa-solid fa-rotate-right"></i>もう一度組閣する</button>
+      <button class="btn" id="btnShare"><i class="fa-solid fa-share-nodes"></i>結果をシェア</button>
+    </div>
+  </div></div>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const clamp=v=>Math.max(0,Math.min(100,v));
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+
+// ================= 背景パターン（状況に応じて差し替え。本番は事前に画像生成した7枚を使う。プロンプトは docs/background_prompts.md） =================
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646}}
+const SCENES={
+  good:    {name:'順調',  cap:'順調｜夕暮れの東京。街は穏やかに回っている',sky:['#6f7fd6','#f59a8b','#ffd29a'],b:['#7d6aa8','#9c7fb8','#b995c2'],win:'#ffe07a',lit:.35,sun:['#ffdf6e',1180,560]},
+  stall:   {name:'停滞',  cap:'停滞｜どんよりした空。閉まった店が目立つ',sky:['#8f9bb0','#a9b2c2','#c3c9d3'],b:['#6b7488','#7c8599','#8e97a9'],win:'#e8dcae',lit:.1,clouds:1,dim:1},
+  ruin:    {name:'荒廃',  cap:'荒廃｜夜の官邸前に、抗議の群衆',sky:['#141735','#23265a','#3a2a5c'],b:['#1d2046','#262a58','#30356a'],win:'#ffb86b',lit:.3,stars:1,moon:1,crowd:1,dim:1},
+  urban:   {name:'都市化',cap:'都市化｜再開発が進み、クレーンが空を埋める',sky:['#4f9fe8','#8fcbf5','#d6eefc'],b:['#5a6bb8','#6b7fc8','#8fa0d8'],win:'#fff2b0',lit:.5,sun:['#fff3b0',1320,150],cranes:1,tall:1},
+  rural:   {name:'地方化',cap:'地方化｜山並みと田畑が広がり、町がゆっくり息をする',sky:['#8fd3c7','#ffe3a8','#fff3d6'],b:['#9c8a7a','#b7a48f','#cdbba5'],win:'#ffe07a',lit:.3,sun:['#ffd98a',300,520],mountains:1,trees:1},
+  disaster:{name:'災害',  cap:'災害｜暴風雨。各地で被害が出ている',sky:['#2d4552','#3f5a67','#58727d'],b:['#28404b','#324c58','#3d5864'],win:'#b9e0f0',lit:.08,clouds:1,rain:1,dim:1},
+  tension: {name:'緊張',  cap:'緊張｜湾の沖合に艦影。外交の緊張が高まる',sky:['#6b2340','#c2474a','#ff8a5c'],b:['#5a2240','#6e2a4c','#833458'],win:'#ffcf8a',lit:.2,ships:1,sun:['#ffd6a0',1270,600]},
+};
+let svgN=0;
+function sceneSVG(kind){
+  const P=SCENES[kind],r=rng(11),u=kind+(++svgN),O='#1f2244',sw=3;
+  let s=`<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="k${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.sky[0]}"/><stop offset=".6" stop-color="${P.sky[1]}"/><stop offset="1" stop-color="${P.sky[2]}"/></linearGradient></defs>
+  <rect width="1600" height="900" fill="url(#k${u})"/>`;
+  if(P.stars)for(let i=0;i<70;i++){const x=r()*1600,y=r()*380,z=r()*3+2;s+=`<path d="M${x} ${y-z}L${x+z*.3} ${y-z*.3}L${x+z} ${y}L${x+z*.3} ${y+z*.3}L${x} ${y+z}L${x-z*.3} ${y+z*.3}L${x-z} ${y}L${x-z*.3} ${y-z*.3}Z" fill="#fff" opacity="${.4+r()*.6}"/>`}
+  if(P.moon)s+=`<circle cx="1320" cy="140" r="40" fill="#fff3c4" stroke="${O}" stroke-width="${sw}"/><circle cx="1305" cy="130" r="7" fill="#e9dca8"/><circle cx="1332" cy="155" r="5" fill="#e9dca8"/>`;
+  if(P.sun)s+=`<circle cx="${P.sun[1]}" cy="${P.sun[2]}" r="110" fill="#fff" opacity=".18"/><circle cx="${P.sun[1]}" cy="${P.sun[2]}" r="70" fill="${P.sun[0]}" stroke="${O}" stroke-width="${sw}"/>`;
+  const cloud=(x,y,sc,c)=>`<g transform="translate(${x} ${y}) scale(${sc})"><path d="M-80 20 Q-80 -10 -50 -10 Q-40 -45 0 -40 Q35 -60 60 -25 Q95 -25 95 10 Q95 25 80 25 H-70 Q-80 25 -80 20Z" fill="${c}" stroke="${O}" stroke-width="${sw/sc}"/></g>`;
+  const cc=P.clouds?(kind==='disaster'?'#5c7480':'#d2d7e0'):'#fff7ea';
+  [[240,150,1],[700,110,.8],[1000,190,1.1],[1450,130,.9]].forEach(([x,y,sc],i)=>{if(P.clouds||i%2===0)s+=`<g class="${P.clouds?'':''}">`+cloud(x,y,sc*(P.clouds?1.5:1),cc)+`</g>`});
+  if(P.fireworks)[[330,170,'#ff6b57'],[760,120,'#ffc93c'],[1150,200,'#35cfa1'],[1440,120,'#5ab4ff']].forEach(([x,y,c],k)=>{
+    let g=`<g opacity="0"><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" begin="${k*.6}s" repeatCount="indefinite"/>`;
+    for(let a=0;a<16;a++){const t=a/16*Math.PI*2;g+=`<line x1="${x+Math.cos(t)*16}" y1="${y+Math.sin(t)*16}" x2="${x+Math.cos(t)*62}" y2="${y+Math.sin(t)*62}" stroke="${c}" stroke-width="7" stroke-linecap="round"/>`}
+    s+=g+`<circle cx="${x}" cy="${y}" r="9" fill="#fff"/></g>`});
+  // 奥：山並み（地方化）／ビル群（高層化で背が伸びる）
+  let x=0;
+  if(P.mountains){s+=`<path d="M-20 660 L160 420 L300 560 L470 380 L640 560 L820 430 L1000 580 L1180 400 L1380 570 L1540 440 L1640 560 L1640 700 L-20 700Z" fill="#7fb59a" stroke="${O}" stroke-width="${sw}"/><path d="M440 420 L470 380 L500 420 M1150 440 L1180 400 L1210 440" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>`;
+    while(x<1600){const w=60+r()*50,h=40+r()*50;s+=`<rect x="${x}" y="${650-h}" width="${w}" height="${h+30}" rx="6" fill="${P.b[2]}" stroke="${O}" stroke-width="${sw}"/>`;x+=w+60+r()*80}}
+  else while(x<1600){const w=50+r()*70,h=(90+r()*170)*(P.tall?1.7:1);s+=`<rect x="${x}" y="${640-h}" width="${w}" height="${h+30}" rx="6" fill="${P.b[2]}" stroke="${O}" stroke-width="${sw}"/>`;x+=w-3}
+  const win=(x0,y0,w,h,cols,rows)=>{let o='';const cw=(w-16)/cols,rh=(h-18)/rows;for(let i=0;i<cols;i++)for(let j=0;j<rows;j++)o+=`<rect x="${(x0+8+i*cw+2).toFixed(1)}" y="${(y0+10+j*rh+2).toFixed(1)}" width="${(cw-6).toFixed(1)}" height="${(rh-7).toFixed(1)}" rx="2" fill="${r()<P.lit?P.win:'#00000030'}"/>`;return o};
+  // タワー
+  const tc=P.dim&&!P.crowd?'#8e97a9':'#ff6b57';
+  s+=`<path d="M1150 660 L1172 330 H1188 L1210 660 Z" fill="${tc}" stroke="${O}" stroke-width="${sw}"/><rect x="1140" y="560" width="80" height="16" rx="3" fill="#fff" stroke="${O}" stroke-width="${sw}"/><rect x="1160" y="440" width="40" height="12" rx="3" fill="#fff" stroke="${O}" stroke-width="${sw}"/><line x1="1180" y1="330" x2="1180" y2="270" stroke="${O}" stroke-width="5"/><circle cx="1180" cy="266" r="7" fill="#ff6b57" stroke="${O}" stroke-width="2" class="blink"/>`;
+  // 海
+  s+=`<rect x="1380" y="700" width="230" height="210" fill="${kind==='tension'?'#6a3a6a':'#4f7fcf'}" stroke="${O}" stroke-width="${sw}"/>`;
+  for(let i=0;i<5;i++)s+=`<path d="M${1400+r()*150} ${720+i*18} q10 -6 20 0 t20 0" stroke="#fff" stroke-width="3" fill="none" opacity=".5" stroke-linecap="round"/>`;
+  if(P.ships)for(const [sx,sy,sc] of [[1450,736,1],[1545,760,.8],[1415,790,1.1]])s+=`<g transform="translate(${sx} ${sy}) scale(${sc})"><g class="bob"><path d="M-46 0h92l-14 16h-64z" fill="#4a4e6e" stroke="${O}" stroke-width="3"/><rect x="-16" y="-18" width="28" height="18" rx="3" fill="#6a6e8e" stroke="${O}" stroke-width="3"/><rect x="-3" y="-34" width="5" height="16" fill="${O}"/></g></g>`;
+  else s+=`<g transform="translate(1480 750)"><g class="bob"><path d="M-50 0h100l-14 16h-72z" fill="#fff" stroke="${O}" stroke-width="3"/><rect x="-30" y="-18" width="50" height="18" rx="3" fill="#ff6b57" stroke="${O}" stroke-width="3"/></g></g>`;
+  // 田んぼの丘
+  s+=`<path d="M-10 700 Q90 630 210 690 L210 910 L-10 910Z" fill="${P.dim?'#6b8a6a':'#6fcf7a'}" stroke="${O}" stroke-width="${sw}"/>`;
+  for(let i=0;i<4;i++)s+=`<path d="M0 ${725+i*22} Q95 ${705+i*22} 205 ${720+i*22}" stroke="${O}" stroke-width="2" fill="none" opacity=".25"/>`;
+  s+=`<path d="M52 692 l34 -26 l34 26 v26 h-68z" fill="#fff5e1" stroke="${O}" stroke-width="${sw}"/><path d="M46 694 l40 -32 l40 32" fill="none" stroke="#ff6b57" stroke-width="7" stroke-linejoin="round"/>`;
+  // 団地
+  for(const [bx,by,bw,bh] of [[205,600,125,112],[252,552,100,52],[334,622,58,90]])s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="5" fill="${P.b[1]}" stroke="${O}" stroke-width="${sw}"/>`+win(bx,by,bw,bh,5,4);
+  // 国会議事堂風
+  s+=`<g stroke="${O}" stroke-width="${sw}"><rect x="400" y="620" width="240" height="92" rx="4" fill="#efe3c8"/><rect x="478" y="562" width="84" height="58" fill="#efe3c8"/><rect x="494" y="524" width="52" height="38" fill="#efe3c8"/><path d="M490 526 L520 470 L550 526Z" fill="#9fd0c0"/></g>`;
+  for(let i=0;i<9;i++)s+=`<rect x="${414+i*25}" y="640" width="10" height="56" rx="3" fill="${P.lit>.2?'#d9c7a0':'#cbbd9f'}" stroke="${O}" stroke-width="2"/>`;
+  // オフィス街
+  x=700;const oc=[P.b[0],P.b[1],'#5a6bb8','#6b5aa8'];let k=0;while(x<1125){const w=58+r()*44,h=(180+r()*210)*(P.mountains?.6:P.tall?1.15:1);s+=`<rect x="${x}" y="${718-h}" width="${w}" height="${h}" rx="5" fill="${P.dim?P.b[k%2]:oc[k%4]}" stroke="${O}" stroke-width="${sw}"/>`+win(x,718-h,w,h,3,Math.floor(h/32));x+=w+6;k++}
+  // クレーン（都市化）
+  if(P.cranes)for(const [cx,top] of [[760,170],[1060,230],[330,330]])s+=`<g stroke="${O}" stroke-width="3" fill="#ffc93c"><rect x="${cx-6}" y="${top}" width="12" height="${720-top}"/><rect x="${cx-70}" y="${top-12}" width="170" height="12"/><rect x="${cx-70}" y="${top-12}" width="24" height="26" fill="#1f2244"/></g><line x1="${cx+80}" y1="${top}" x2="${cx+80}" y2="${top+90}" stroke="${O}" stroke-width="2"/><rect x="${cx+70}" y="${top+90}" width="20" height="14" fill="#ff6b57" stroke="${O}" stroke-width="2"/>`;
+  // 木々（地方化）
+  if(P.trees)for(let i=0;i<16;i++){const tx=220+i*72+r()*20,ty=700+r()*8;s+=`<rect x="${tx-3}" y="${ty}" width="6" height="14" fill="#8a5a3a"/><circle cx="${tx}" cy="${ty-8}" r="${14+r()*6}" fill="${i%2?'#5fbf6f':'#7fd08a'}" stroke="${O}" stroke-width="2.5"/>`}
+  // 大学
+  s+=`<g stroke="${O}" stroke-width="${sw}"><rect x="1236" y="612" width="176" height="100" rx="4" fill="#e9b98a"/><rect x="1302" y="516" width="44" height="96" fill="#e9b98a"/><path d="M1296 518 L1324 470 L1352 518Z" fill="#8c6cf2"/><circle cx="1324" cy="548" r="14" fill="#fff"/></g><path d="M1324 548v-8M1324 548h7" stroke="${O}" stroke-width="3"/>`+win(1236,612,176,100,6,3);
+  // 道路・商店街
+  s+=`<rect x="200" y="712" width="1190" height="200" fill="#3a3d63" stroke="${O}" stroke-width="${sw}"/>`;
+  for(let i=0;i<14;i++)s+=`<rect x="${230+i*85}" y="860" width="40" height="8" rx="4" fill="#fff" opacity=".5"/>`;
+  x=450;const aw=['#ff6b57','#5ab4ff','#ffc93c','#35cfa1','#8c6cf2'];for(let i=0;i<8;i++){const open=kind==='stall'?r()<.25:r()<.9;
+    s+=`<rect x="${x}" y="738" width="48" height="50" rx="3" fill="${open?'#fff5e1':'#a3a9bd'}" stroke="${O}" stroke-width="${sw}"/>`+(open?`<path d="M${x-4} 738 h56 l-6 14 h-44z" fill="${aw[i%5]}" stroke="${O}" stroke-width="${sw}" stroke-linejoin="round"/><rect x="${x+12}" y="758" width="24" height="24" rx="3" fill="${P.win}" stroke="${O}" stroke-width="2"/>`:[0,1,2,3].map(j=>`<line x1="${x+4}" y1="${748+j*10}" x2="${x+44}" y2="${748+j*10}" stroke="${O}" stroke-width="2" opacity=".5"/>`).join(''));x+=54}
+  // 工場
+  s+=`<g stroke="${O}" stroke-width="${sw}" stroke-linejoin="round"><path d="M1030 742 v-30 l30 -18 v18 l30 -18 v18 l30 -18 v48z" fill="#b9bfd6"/><rect x="1030" y="742" width="130" height="50" fill="#b9bfd6"/><rect x="1140" y="660" width="18" height="82" fill="#ff6b57"/></g>`;
+  if(kind!=='stall')for(let i=0;i<3;i++)s+=`<circle cx="1146" cy="652" r="${9+i*3}" fill="#fff" opacity="0"><animate attributeName="cy" values="652;610" dur="6s" begin="${i*2}s" repeatCount="indefinite"/><animate attributeName="cx" values="1146;1120" dur="6s" begin="${i*2}s" repeatCount="indefinite"/><animate attributeName="opacity" values="0;.55;0" dur="6s" begin="${i*2}s" repeatCount="indefinite"/></circle>`;
+  // 群衆
+  if(P.crowd){const cols=['#ff6b57','#5ab4ff','#ffc93c','#35cfa1','#c7b8ff'];for(let i=0;i<110;i++){const cx=320+r()*730,cy=812+r()*70;s+=`<g class="${i%3?'':'bob'}" style="animation-delay:${r()}s"><rect x="${cx-9}" y="${cy+4}" width="18" height="24" rx="6" fill="${cols[i%5]}" stroke="${O}" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="8" fill="#ffd9b8" stroke="${O}" stroke-width="2"/></g>`}
+    ['NO!','退陣','生活を守れ','説明して','増税反対'].forEach((t,k)=>{const px=380+k*145,py=770;s+=`<g class="bob" style="animation-delay:${k*.25}s"><line x1="${px}" y1="${py}" x2="${px}" y2="${py+46}" stroke="${O}" stroke-width="4"/><rect x="${px-44}" y="${py-30}" width="88" height="34" rx="6" fill="#fff" stroke="${O}" stroke-width="3"/><text x="${px}" y="${py-6}" font-size="17" text-anchor="middle" fill="#d9493a" font-family="Dela Gothic One,sans-serif">${t}</text></g>`});
+    s+=`<circle cx="600" cy="730" r="9" fill="#ff6b57" stroke="${O}" stroke-width="2" class="blink"/><circle cx="622" cy="730" r="9" fill="#5ab4ff" stroke="${O}" stroke-width="2" class="blink" style="animation-delay:.5s"/>`}
+  return s+`</svg>`;
+}
+
+// ================= 状態 =================
+const FACS=[['yM','若年男性',.09],['yF','若年女性',.09],['mM','中年男性',.12],['mF','中年女性',.12],['oM','高齢男性',.13],['oF','高齢女性',.15],['big','大企業',.06],['sme','中小企業',.10],['agr','農林水産',.05],['uni','労働組合',.09]];
+const INIT={yM:44,yF:40,mM:50,mF:47,oM:60,oF:58,big:66,sme:45,agr:62,uni:38,us:74,cn:36,as:60};
+const SPK={
+  cab:  {ic:'fa-clipboard-list',role:'官房長官',fac:[],x:612,y:592,c:'#c7b8ff'},
+  old:  {ic:'fa-person-cane',role:'年金暮らし',fac:['oM','oF'],x:268,y:546,c:'#ffb3a7'},
+  agr:  {ic:'fa-wheat-awn',role:'農家',fac:['agr'],x:140,y:660,c:'#9be3a4'},
+  sme:  {ic:'fa-store',role:'商店街',fac:['sme'],x:660,y:700,c:'#ffd98a'},
+  mom:  {ic:'fa-baby-carriage',role:'子育て世代',fac:['mF'],x:820,y:690,c:'#ffc2e0'},
+  sala: {ic:'fa-briefcase',role:'会社員',fac:['mM'],x:890,y:598,c:'#a9d6ff'},
+  big:  {ic:'fa-building',role:'経済団体',fac:['big'],x:1000,y:462,c:'#b9bfd6'},
+  uni:  {ic:'fa-helmet-safety',role:'労働組合',fac:['uni'],x:1100,y:690,c:'#ffcf9e'},
+  young:{ic:'fa-graduation-cap',role:'大学生',fac:['yM','yF'],x:1324,y:462,c:'#c9b8ff'},
+  us:   {ic:'fa-flag-usa',role:'アメリカ',fac:['us'],x:1470,y:630,c:'#a9d6ff'},
+  cn:   {ic:'fa-dragon',role:'中国',fac:['cn'],x:1460,y:760,c:'#ffb3a7'},
+  world:{ic:'fa-earth-asia',role:'諸外国',fac:['as'],x:1375,y:705,c:'#9be3d0'},
+  press:{ic:'fa-microphone',role:'記者クラブ',fac:[],x:400,y:690,c:'#e0e0e8'},
+};
+const ME={ic:'fa-user-tie',role:'総理大臣',c:'#ffc93c'};
+const FN={yM:'若年男性',yF:'若年女性',mM:'中年男性',mF:'中年女性',oM:'高齢男性',oF:'高齢女性',big:'大企業',sme:'中小企業',agr:'農林水産',uni:'労組',us:'米国',cn:'中国',as:'諸外国'};
+const EMO={喜:['fa-face-laugh-beam','#20a47d'],怒:['fa-face-angry','#d9493a'],哀:['fa-face-sad-tear','#5a8fd6'],焦:['fa-face-grimace','#e8a916'],疑:['fa-face-meh','#8c8aa6'],安:['fa-face-smile','#20a47d']};
+const RIVALS=[['佐藤 総理',29],['高橋 総理',24],['田中 総理',15],['鈴木 総理',9]];
+let S;
+function newGame(){$('tl').innerHTML='';$('quests').innerHTML='';
+  S={turn:0,v:{...INIT},gems:3,elec:13,low:0,trust:50,coal:60,coalBroken:false,bill:0,fade:{},urban:0,forceQuest:null,events:[],elecNo:52,lastNews:null,quests:[],taxUp:false,maxAppr:0,scene:null,prevAppr:null,seen:new Set(),expired:null,used:new Set()}}
+function approvalOf(v){return +FACS.reduce((a,[id,,w])=>a+v[id]*w,0).toFixed(1)}
+const approval=()=>approvalOf(S.v);
+function qLabel(t){const q=(3+t)%4+1,y=2026+Math.floor((3+t)/4);return [y,q]}
+function tenure(t){const m=t*3;return `${Math.floor(m/12)}年${m%12}ヶ月`}
+const moodCol=v=>v<25?'#ff6b57':v<40?'#ffc93c':'#35cfa1';
+const moodIc=v=>v<25?'fa-face-angry':v<40?'fa-face-meh':v<55?'fa-face-smile':'fa-face-laugh-beam';
+
+// ================= 描画 =================
+function renderMarkers(){
+  $('markers').innerHTML=Object.entries(SPK).map(([k,p])=>{
+    const v=p.fac.length?Math.round(p.fac.reduce((a,f)=>a+S.v[f],0)/p.fac.length):null,C=2*Math.PI*30;
+    return `<div class="mk ${v===null?'sq':''} ${v!==null&&v<25?'low':''} ${p.x<220?'edge-l':p.x>1380?'edge-r':''}" id="mk-${k}" style="left:${p.x/16}%;top:${p.y/9}%">
+      <div class="bub"></div><span class="fnum num"></span>
+      <div class="pin" style="background:${p.c}">${v!==null?`<svg class="ring" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#1f224455" stroke-width="5"/><circle cx="32" cy="32" r="30" fill="none" stroke="${moodCol(v)}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C*v/100} ${C}"/></svg>`:''}
+        <i class="fa-solid ${p.ic}"></i>${v!==null?`<span class="face"><i class="fa-solid ${moodIc(v)}" style="color:${moodCol(v)}"></i></span>`:''}</div>
+      <div class="nm">${p.role}</div></div>`}).join('');
+}
+function renderHUD(){
+  const a=approval(),[y,q]=qLabel(S.turn);
+  $('hDate').textContent=`${y}年 Q${q}`;$('hTenure').textContent=`在任 ${tenure(S.turn)}`;
+  $('hA').textContent=a.toFixed(1)+'%';$('hABar').style.width=a+'%';
+  const d=S.prevAppr==null?0:+(a-S.prevAppr).toFixed(1);$('hAd').textContent=d?(d>0?'▲':'▼')+Math.abs(d):'';$('hAd').className='d num '+(d>0?'up':'dn');
+  $('hBolts').innerHTML=Array.from({length:5},(_,i)=>`<i class="fa-solid fa-bolt ${i<S.gems?'on':''}"></i>`).join('');
+  $('hElec').textContent=S.elec;
+  renderMarkers();
+}
+// 内閣支持率のゲージにホバーで、属性ごとの支持率を一覧表示
+function renderApTip(){
+  const row=(nm,w,v)=>`<div class="row"><span>${nm}</span><small>${w}</small><div class="bar"><i style="width:${v}%;background:${moodCol(v)}"></i></div><b>${Math.round(v)}</b></div>`;
+  const dom=[...FACS].sort((a,b)=>S.v[a[0]]-S.v[b[0]]).map(([id,nm,w])=>row(nm,Math.round(w*100)+'%',S.v[id])).join('');
+  const fr=[['us','米国'],['cn','中国'],['as','諸外国']].map(([id,nm])=>row(nm,'',S.v[id])).join('');
+  $('apTip').innerHTML=`<h4>属性別の支持率<small>国内は重み付きで内閣支持率に反映</small></h4>${dom}<div class="sep">外国（内閣支持率には含まない）</div>${fr}
+    <div class="sep">政権の状態</div><div class="meta"><span>政権への信頼</span><b>${Math.round(S.trust)}</b><span>連立（維新）との関係</span><b>${S.coalBroken?'離脱':Math.round(S.coal)}</b><span>財政のツケ</span><b>${S.bill}/6</b></div>`;
+}
+{const m=$('mtA'),show_=on=>{if(on)renderApTip();$('apTip').classList.toggle('on',on)};
+  m.addEventListener('mouseenter',()=>show_(true));m.addEventListener('mouseleave',()=>show_(false));
+  m.addEventListener('click',()=>show_(!$('apTip').classList.contains('on')));m.addEventListener('blur',()=>show_(false))}
+function shake(id){const m=$(id);m.classList.remove('shake');void m.offsetWidth;m.classList.add('shake')}
+function pickScene(){
+  const c=S.quests.find(q=>q.scene);if(c)return c.scene;
+  const a=approval();
+  if(a<25)return 'ruin';
+  if(S.v.us<30||S.v.cn<20)return 'tension';
+  if(a<38)return 'stall';
+  if(S.urban>=4)return 'urban';
+  if(S.urban<=-4)return 'rural';
+  return 'good';
+}
+let front='sceneA';
+function setScene(kind,instant){
+  if(S.scene===kind&&!instant)return;S.scene=kind;
+  const back=front==='sceneA'?'sceneB':'sceneA';$(back).innerHTML=sceneSVG(kind);
+  if(instant){$(back).style.transition='none';$(front).style.transition='none'}
+  requestAnimationFrame(()=>{$(back).style.opacity=1;$(front).style.opacity=0;const f=front;front=back;setTimeout(()=>{$(back).style.transition='';$(f).style.transition=''},60)});
+  $('rain').style.opacity=SCENES[kind].rain?1:0;$('flash').classList.toggle('on',!!SCENES[kind].rain);
+  const c=$('cap');c.textContent=SCENES[kind].cap;c.classList.add('on');clearTimeout(c._t);c._t=setTimeout(()=>c.classList.remove('on'),4500);
+}
+// ホバーで「いまの気持ち」を吹き出し表示
+const MOOD={
+  old:['年金だけじゃ、毎月ぎりぎりだよ。もう限界さね。','まあ、なんとかやってるよ。電気代は高いけどね。','最近の総理はよくやってるじゃないか。'],
+  agr:['米作っても赤字だ。誰が後を継ぐんだ。','天気と値段次第だな。まあ、ぼちぼちだ。','今年は手応えがある。国も見てくれてるな。'],
+  sme:['仕入れは上がるし人は来ないし、もう店じまいかな……。','なんとか回してますけど、余裕はないですね。','お客さん戻ってきましたよ！景気いいです。'],
+  mom:['保育園も落ちて、もうどうしたらいいのか……。','子育てはお金がかかりますね。支援はありがたいけど。','子どもを育てやすくなってきた気がします。'],
+  sala:['給料は上がらないのに税金ばっかり。やってられないよ。','可もなく不可もなく、って感じですね。','ボーナス増えたんですよ。ちょっと期待してます。'],
+  big:['この政権では投資計画が立てられませんな。','様子見ですな。規制と税制次第です。','非常に良い事業環境です。国内投資を増やしましょう。'],
+  uni:['働く者をなめてるのか。次の選挙で分かるさ。','賃上げはまだまだ足りない。見てるからな。','労働者の声が届いてきた。評価してる。'],
+  young:['将来とか考えられない。どうせ上の世代優先でしょ。','まあ、正直よく分かんないけど、悪くはないかな。','最近ちょっと未来に期待できるかも。'],
+  us:['同盟国としての姿勢に疑問を持たざるを得ない。','日米関係は安定している。引き続き協力を。','日本は最高のパートナーだ。'],
+  cn:['日本政府の最近の言動は看過できない。','両国は対話を続けるべきである。','日中関係は改善に向かっている。'],
+  world:['日本は内向きになったと、各国が懸念しています。','各国は日本の動きを静かに見守っています。','日本への投資と観光が、世界で注目されています。'],
+};
+function peek(k,on){
+  const el=$('mk-'+k),p=SPK[k];if(!el)return;const b=el.querySelector('.bub');
+  if(!on){if(b.classList.contains('peek')){b.classList.remove('on','peek');el.style.zIndex=''}return}
+  if(b.classList.contains('on'))return;
+  let text,emo;
+  const dq=S.quests.find(q=>q.who===k);
+  let pv=p.fac.length?Math.round(p.fac.reduce((a,f)=>a+S.v[f],0)/p.fac.length):null;
+  if(dq){text=dq.say;emo=dq.kind==='crisis'?'焦':'疑'}
+  else if(p.fac.length&&MOOD[k]){const v=p.fac.reduce((a,f)=>a+S.v[f],0)/p.fac.length,t=v<30?0:v<55?1:2;text=MOOD[k][t];emo=['怒','疑','喜'][t]}
+  else if(k==='cab'){text=`支持率は${approval().toFixed(1)}%です。${approval()<30?'世論が荒れています、ご注意を。':'今のところ落ち着いています。'}`;emo='安'}
+  else if(k==='press'){text='総理、次の一手をお聞かせください。';emo='疑'}
+  else return;
+  const e=EMO[emo];
+  b.innerHTML=`<div class="who"><i class="fa-solid ${e[0]}" style="color:${e[1]}"></i><span class="n">${p.role}</span></div><p></p>${pv!==null?`<div class="sup"><span>支持率</span><div class="sb"><i style="width:${pv}%;background:${moodCol(pv)}"></i></div><b class="num">${pv}%</b></div>`:''}`;b.querySelector('p').textContent=text;
+  b.classList.add('on','peek');el.style.zIndex=15;
+}
+$('markers').addEventListener('mouseover',e=>{const m=e.target.closest('.mk');if(m)peek(m.id.slice(3),true)});
+$('markers').addEventListener('mouseout',e=>{const m=e.target.closest('.mk');if(m&&!m.contains(e.relatedTarget))peek(m.id.slice(3),false)});
+function speak(k,text,emo,fx={}){
+  const el=$('mk-'+k);if(!el)return;const p=SPK[k];const b=el.querySelector('.bub');
+  const e=emo&&EMO[emo];
+  b.innerHTML=`<div class="who">${e?`<i class="fa-solid ${e[0]}" style="color:${e[1]}"></i>`:''}<span class="n">${p.role}</span></div><p></p>`;b.querySelector('p').textContent=text;
+  el.style.zIndex=15;el.classList.add('talk');b.classList.remove('peek');b.classList.add('on');clearTimeout(b._t);b._t=setTimeout(()=>{b.classList.remove('on');el.classList.remove('talk');el.style.zIndex=''},5600);
+  const d=Object.values(fx).reduce((a,v)=>a+v,0);
+  if(d){const f=el.querySelector('.fnum');f.textContent=(d>0?'+':'−')+Math.abs(d);f.className='fnum num '+(d>0?'p':'m');void f.offsetWidth;f.classList.add('show')}
+  const w=$('world'),mx=p.x/1600*$('stage').offsetWidth;if(mx<w.scrollLeft+100||mx>w.scrollLeft+w.clientWidth-100)w.scrollTo({left:mx-w.clientWidth/2,behavior:'smooth'});
+  logLine(k,text,emo,fx);
+}
+// 総理の表明は入力欄の上に「総理会見」として表示
+function statement(text){const e=$('stmt');e.querySelector('p').textContent=text;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),5000);logLine('me',text,'')}
+function logLine(k,text,emo,fx={}){
+  const d=document.createElement('div');
+  if(k==='sys'){d.className='ln sys';d.textContent=text}
+  else{const p=k==='me'?ME:SPK[k];d.className='ln'+(k==='me'?' me':'');
+    d.innerHTML=`<div class="a" style="background:${p.c}"><i class="fa-solid ${p.ic}"></i></div><div class="t"><b>${p.role}</b>　<span></span>${Object.keys(fx).length?`<div class="fx">${Object.entries(fx).filter(([,v])=>v).map(([f,v])=>`<span class="${v>0?'up':'dn'}">${FN[f]}${v>0?'+':''}${v}</span>`).join('')}</div>`:''}</div>`;
+    d.querySelector('.t span').textContent=text}
+  $('tl').appendChild(d);$('tl').scrollTop=1e9;
+}
+// ================= 行動経済学・ゲーム理論モデル =================
+// ・損失回避（プロスペクト理論）：同じ大きさなら、損は得の約1.6倍強く感じる
+// ・組織化された少数者（オルソン）：大企業・農業・労組は声が大きく、反応が1.3倍
+// ・フレーミング：「支援」「投資」「守る」などの言い方は反発をやや和らげ、「増税」「削減」などは強める
+// ・信頼（繰り返しゲームの評判）：約束を守るほど、同じ言葉でも好意的に受け取られる（0.6〜1.4倍）
+// ・慣れ（快楽順応）：上がった支持の半分は、その後数ターンで元に戻る。下がった分は戻らない
+const PSY={loss:1.6,organized:{big:1.3,agr:1.3,uni:1.3},tempShare:.5};
+function framing(text){let f=1;if(!text)return f;if(/(負担を?軽|投資|未来|守る|支援|安心|応援)/.test(text))f*=.85;if(/(増税|削減|カット|負担増|打ち切)/.test(text))f*=1.15;return f}
+function transformFx(fx,{text='',trust=50}={}){
+  const out={},fr=framing(text),cred=.6+trust/125;
+  for(const[k,d0]of Object.entries(fx)){if(!d0)continue;let d=d0*(PSY.organized[k]||1);d=d<0?d*PSY.loss*fr:d*cred;out[k]=Math.sign(d)*Math.max(1,Math.round(Math.abs(d)))}
+  return out;
+}
+// fx は「素の値」。心理効果を通した値を適用し、実際に動いた値を返す
+function applyFx(fx,ctx={}){
+  const t=transformFx(fx,{trust:S.trust,...ctx});
+  for(const[k,d]of Object.entries(t)){const before=S.v[k];S.v[k]=clamp(S.v[k]+d);if(d>0)S.fade[k]=(S.fade[k]||0)+(S.v[k]-before)*PSY.tempShare}
+  return t;
+}
+function trustDelta(d,why){S.trust=Math.max(0,Math.min(100,S.trust+d));if(why)logLine('sys',`信頼 ${d>0?'+':''}${d}：${why}`)}
+// 都市化・地方化の軸（背景の差し替えに使う）
+function urbanShift(p,text){let u=0;const c=p&&p.cat;if(c==='経済成長'||c==='エネルギー')u+=2;if(c==='農業'||c==='防災')u-=2;if(/(地方|農|移住|ふるさと|過疎)/.test(text))u-=2;if(/(都市|再開発|半導体|データセンター|AI)/.test(text))u+=2;S.urban=Math.max(-10,Math.min(10,S.urban+u))}
+
+// ================= 政策表明（モック：公約データ＋その他のキーワード。本番はLLMが反応を生成） =================
+const PARTIES=window.PARTIES||[];const PARTY=Object.fromEntries(PARTIES.map(p=>[p.id,p]));
+// fx から住民の反応セリフを組み立てる（自民党以外。本番はLLMが生成）
+const FAC2SPK={yM:'young',yF:'young',mM:'sala',mF:'mom',oM:'old',oF:'old',big:'big',sme:'sme',agr:'agr',uni:'uni',us:'us',cn:'cn',as:'world'};
+const TPL={
+  old:[['喜','「{t}」かい。年寄りにもありがたい話だね。'],['安','まあ、悪くない話じゃないか。'],['怒','「{t}」だって？こっちの暮らしはどうなるんだい！'],['疑','年寄りは後回しってことかね。']],
+  young:[['喜','「{t}」、それはマジでうれしい！'],['安','ちょっと未来に期待できるかも。'],['怒','それ、結局ツケを払うの僕らだよね？'],['哀','若者のことは考えてくれないんだ……。']],
+  mom:[['喜','「{t}」、家計が本当に助かります！'],['安','子育て世代にはありがたいです。'],['焦','「{t}」……うちの家計は大丈夫でしょうか。'],['哀','子どものことはいつも後回しなんですね。']],
+  sala:[['喜','それなら手取りが増えそうだ。いいね。'],['安','まあ、方向性は分かりますよ。'],['怒','会社員ばかり負担させられてる気がする。'],['疑','生活がどう変わるのか、ピンと来ないなあ。']],
+  big:[['喜','経済界として歓迎します。投資を増やしましょう。'],['安','前向きに受け止めています。'],['焦','企業負担が増えるなら、国内投資は難しくなります。'],['疑','財源はどうされるのか、説明が必要です。']],
+  sme:[['喜','「{t}」、うちみたいな店には本当に助かります！'],['安','少しは楽になりそうです。'],['怒','小さい会社にそんな余裕はありませんよ！'],['焦','現場の負担が増えるだけじゃ……。']],
+  agr:[['喜','「{t}」か。農家にも光が差してきた。'],['安','まあ、ありがたい話だ。'],['怒','田舎のことはまた置き去りか。'],['疑','現場を知ってる人が決めてるのかね。']],
+  uni:[['喜','働く者の声が届いた！評価する。'],['安','一歩前進だな。'],['怒','労働者を切り捨てる気か！'],['疑','賃上げにつながらなきゃ意味がない。']],
+  us:[['喜','日米関係にとって前向きな決定だ。'],['安','日本の判断を尊重する。'],['怒','同盟国として強い懸念を表明する。'],['疑','米国との調整が必要だろう。']],
+  cn:[['喜','地域の安定に資する判断を評価する。'],['安','対話の姿勢を歓迎する。'],['怒','日本の動きに強く抗議する。'],['疑','日本の真意を注視している。']],
+  world:[['喜','開かれた日本の姿勢を、各国が歓迎しています。'],['安','各国は前向きに受け止めています。'],['怒','各国から、日本の閉鎖的な姿勢を懸念する声が出ています。'],['疑','各国は、日本の方針の行方を見守っています。']],
+};
+function genReactions(p){
+  const by={};for(const[f,d]of Object.entries(p.fx)){const k=FAC2SPK[f];if(!k)continue;(by[k]=by[k]||{})[f]=d}
+  const rs=Object.entries(by).map(([k,fx])=>{const sum=Object.values(fx).reduce((a,b)=>a+b,0);const [emo,t]=TPL[k][sum>=5?0:sum>0?1:sum<=-5?2:3];return [k,emo,t.replace('{t}',p.title),fx,Math.abs(sum)]})
+    .sort((a,b)=>b[4]-a[4]).slice(0,4).map(r=>r.slice(0,4));
+  if(p.cost>=2)rs.push(['press','疑','総理、その財源はどう確保するのですか。',{}]);
+  return rs;
+}
+const LDP=[...(window.LDP_POLICIES||[]).map(p=>({...p,party:'ldp'})),...(window.PARTY_POLICIES||[]).map(p=>({...p,source:PARTY[p.party].source,reactions:genReactions(p)}))]
+  .map(p=>({...p,re:new RegExp(p.keywords),terms:[...new Set(p.keywords.split(/[|()*.?+\[\]]+/).filter(Boolean))]}));
+const OTHER=[
+ {title:'消費税の引き上げ',re:/消費税.*(上げ|引き?上|増税|1[2-9]|20)/,cost:1,after:()=>{S.taxUp=true},reactions:[
+   ['old','怒','年金は増えないのに、買い物のたびに取られるのかい！',{oM:-9,oF:-10}],
+   ['sme','焦','価格に転嫁できない店は潰れますよ……。',{sme:-8}],
+   ['young','哀','バイト代、実質また減るじゃん。',{yM:-4,yF:-5}],
+   ['big','喜','財政の持続性を示す英断です。',{big:5}]]},
+ {title:'外国人労働者の受入拡大',re:/(移民|受入|受け入れ).*(拡大|増)/,cost:1,reactions:[
+   ['big','喜','待っていました。現場はもう限界でしたから。',{big:8}],
+   ['world','喜','開かれた日本の姿勢を、各国が歓迎しています。',{as:6}],
+   ['sme','喜','人手が来るなら店を畳まずに済みます。',{sme:6}],
+   ['old','怒','治安は大丈夫なのかい。',{oM:-7,oF:-5}]]},
+];
+const FALLBACK=[['press','疑','総理、具体的に何をどう変えるのか、もう少し説明を。',{}],['sala','疑','言ってることは分かるけど、生活がどう変わるのかピンと来ないなあ。',{}]];
+
+let busy=false;
+async function react(lines,said=''){
+  busy=true;$('btnSay').disabled=true;const a0=approval();
+  for(const [k,emo,text,fx] of lines){await wait(850+Math.random()*350);const real=applyFx(fx,{text:said});renderHUD();speak(k,text,emo,real)}
+  if(approval()<a0-.5)shake('mtA');
+  await wait(700);setScene(pickScene());busy=false;$('btnSay').disabled=false;
+}
+function say(){
+  const text=$('chatIn').value.trim();if(!text||busy)return;
+  $('chatIn').value='';statement(text);
+  // 当てはまった政策のうち、入力文に含まれるキーワードの文字数合計が最も大きい（＝具体的な）ものを採用。同点は与党優先
+  const score=p=>p.terms.filter(t=>text.includes(t)).reduce((n,t)=>n+t.length,0);
+  const cands=LDP.filter(p=>p.re.test(text)).map((p,i)=>[p,score(p),i]).sort((a,b)=>b[1]-a[1]||a[2]-b[2]);
+  const hit=(cands[0]&&cands[0][0])||OTHER.find(p=>p.re.test(text));
+  const cost=hit?hit.cost:1;
+  if(S.gems<cost)return react([['cab','焦','総理、政治資本が足りません。今期はこれ以上の新方針は党内がもちません。',{}]]);
+  const lines=[];
+  // 外交の囚人のジレンマ：関税に報復すると、相手もしっぺ返しで応じる
+  const tq=S.quests.find(q=>q.id==='tariff'||q.id==='tariff2');
+  if(tq&&/(報復|対抗|関税を?(課|かけ|上げ))/.test(text)){lines.push(['us','怒','報復には報復で応じる。対象品目を拡大する。',{us:-12}],['big','焦','輸出が止まります……。',{big:-6}]);resolveQuest(tq,false);S.forceQuest='tariff2';trustDelta(-2)}
+  for(const q of [...S.quests]){if(q.re.test(text)&&(q.kind==='crisis'||q.promised)){lines.push([q.who,'喜',q.thanks,q.ok]);trustDelta(q.kind==='crisis'?5:12,q.kind==='crisis'?'危機に対応した':'約束を守った');resolveQuest(q,true)}}
+  if(hit){
+    if(S.used.has(hit.title||hit.id)){lines.push(['press','疑','総理、その話は以前も伺いました。新しい中身はありますか。',{}]);trustDelta(-3,'同じ話の繰り返し（安い約束）')}
+    else{S.used.add(hit.title||hit.id);hit.after&&hit.after();S.lastNews=`首相、「${hit.title}」を表明`;lines.push(...shuffle([...hit.reactions]));
+      // 現在バイアス：財源の重い政策は、効果は今、負担は後から「ツケ」として来る
+      if(hit.cost>=2)S.bill+=hit.cost;
+      urbanShift(hit,text);
+      // 連立相手（維新）との交渉ゲーム
+      if(hit.party){const dc=hit.party==='ishin'?8:hit.party==='ldp'?1:-6;S.coal=Math.max(0,Math.min(100,S.coal+dc));if(dc<0&&!S.coalBroken)lines.push(['cab','焦','総理、連立相手の維新が「野党の政策に寄りすぎだ」と不満を漏らしています。',{}])}
+      const sup=[...new Set(LDP.filter(p=>p.re.test(text)).map(p=>p.party))].filter(Boolean);
+      if(sup.length){const names=sup.map(id=>PARTY[id].short).join('・');logLine('sys',`この政策の公約：${sup.map(id=>PARTY[id].name).join('、')}`);
+        setTimeout(()=>toast(sup.includes('ldp')?`${names} の公約に沿った表明`:`${names} の公約と同じ方向！野党が賛同`,2600),400);
+        if(!sup.includes('ldp')){lines.push(['press','疑',`総理、それは${PARTY[sup[0]].name}の公約では？ 野党に歩み寄るということですか。`,{oM:-1}])}}}
+  }
+  if(!lines.length)return react(FALLBACK);
+  S.gems-=cost;if(!hit)S.lastNews='首相、危機対応を表明';renderHUD();react(lines,text);
+}
+$('btnSay').onclick=say;
+$('chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();say()}});
+
+// ================= 危機・陳情 =================
+const QUESTS=[
+ {id:'typhoon',kind:'crisis',scene:'disaster',icon:'fa-hurricane',title:'大型台風が直撃！',who:'agr',ttl:1,say:'畑も家もめちゃくちゃだ！国は何してるんだ！',desc:'このターン中に災害対応を表明しよう',re:/(台風|災害|被災|復旧|補正|防災)/,thanks:'総理が動いてくれた。これで立て直せる！',ok:{agr:8,oM:4,oF:4},ng:{agr:-12,oM:-5,oF:-5},un:18},
+ {id:'tariff',kind:'crisis',scene:'tension',icon:'fa-ship',title:'米国が関税25%を通告',who:'us',ttl:1,say:'日本側の誠意ある回答を、今期中に期待する。',desc:'このターン中に対米方針を表明しよう（協調か、報復か）',re:/(関税|米国|アメリカ|交渉|日米|同盟|防衛|協議)/,thanks:'建設的な回答に感謝する。関税は見送ろう。',ok:{us:8,big:6},ng:{us:-10,big:-8,mM:-4},un:10},
+ {id:'yen',kind:'crisis',scene:'stall',icon:'fa-yen-sign',title:'円安が1ドル165円に',who:'sme',ttl:2,say:'仕入れ値が上がりすぎて限界です！',desc:'2ターン以内に物価対策を表明しよう',re:/(円安|為替|物価|給付|ガソリン|食料品|消費税.*ゼロ)/,thanks:'これで少しは息がつけます！',ok:{sme:6,oF:4},ng:{sme:-9,oF:-6,oM:-4},un:12},
+ {id:'tariff2',kind:'crisis',scene:'tension',icon:'fa-ship',title:'米国が報復関税を拡大',who:'us',ttl:1,hidden:true,say:'日本の報復措置を受け、対象品目を拡大する。',desc:'協調に戻るか、さらに対抗するか',re:/(交渉|協議|日米|同盟|協調|撤回)/,thanks:'ようやく話し合いのテーブルについてくれたか。',ok:{us:6,big:4},ng:{us:-8,big:-8,mM:-3}},
+ {id:'rent',kind:'demand',icon:'fa-house',title:'家賃補助をつくって',who:'young',ttl:4,say:'家賃が高すぎて一人暮らしできない！1年以内に家賃補助を！',desc:'4ターン以内に住宅支援を表明しよう',re:/(家賃|住宅|住まい)/,thanks:'約束守ってくれた！ちょっと見直したかも。',ok:{yM:8,yF:8},ng:{yM:-10,yF:-10},un:12},
+ {id:'daycare',kind:'demand',icon:'fa-baby',title:'待機児童をゼロに',who:'mom',ttl:2,say:'保育園に入れません！半年以内に何とかして！',desc:'2ターン以内に子育て支援を表明しよう',re:/(保育|待機児童|子育て|通園|児童手当)/,thanks:'ありがとうございます、仕事を続けられます！',ok:{mF:9,yF:4},ng:{mF:-10,yF:-5},un:10},
+ {id:'pension',kind:'demand',icon:'fa-coins',title:'年金を上げておくれ',who:'old',ttl:4,say:'物価ばかり上がって年金は据え置き。来年までに頼むよ。',desc:'4ターン以内に年金か物価対策を表明しよう',re:/(年金|給付|食料品)/,thanks:'約束を守る総理は久しぶりだよ。',ok:{oM:8,oF:8},ng:{oM:-9,oF:-9},un:12},
+ {id:'wage',kind:'demand',icon:'fa-hand-fist',title:'最低賃金1500円を',who:'uni',ttl:4,say:'1年以内に最低賃金1500円。できなきゃ全国ストだ！',desc:'4ターン以内に賃上げを表明しよう',re:/(最低賃金|賃上げ|賃金|時給)/,thanks:'約束は守られた。ストは中止だ！',ok:{uni:10},ng:{uni:-12,yM:-4},un:15},
+];
+function qHTML(q){
+  const pending=q.kind==='demand'&&!q.promised;
+  return `<div class="qc panel ${q.kind}" id="q-${q.id}">
+    <div class="qh"><i class="fa-solid ${q.icon}"></i><b>${q.title}</b>${pending?'':`<span class="pips">${Array.from({length:q.ttl},(_,i)=>`<i class="${i<q.left?'':'off'}"></i>`).join('')}</span>`}</div>
+    <div class="qb">${pending?`<b>${SPK[q.who].role}</b>「${q.say}」<div class="qa"><button class="btn mint" data-a="yes"><i class="fa-solid fa-handshake"></i>約束する</button><button class="btn" data-a="no">断る</button></div>`
+      :`${q.desc}${q.promised?`<div class="ok"><i class="fa-solid fa-handshake"></i>約束済み・残り${q.left}ターン</div>`:''}`}</div></div>`;
+}
+function renderQuests(){
+  $('quests').innerHTML=S.quests.map(qHTML).join('');
+  S.quests.forEach(q=>$('q-'+q.id).querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{
+    if(b.dataset.a==='yes'){q.promised=true;applyFx(Object.fromEntries(Object.keys(q.ok).map(k=>[k,2])));renderHUD();speak(q.who,'約束ですよ！守ってくださいね。','安');logLine('sys',`「${q.title}」を約束（残り${q.left}ターン）`)}
+    else{const half=Object.fromEntries(Object.entries(q.ng).map(([k,v])=>[k,Math.round(v/2)]));const real=applyFx(half);trustDelta(-2);renderHUD();shake('mtA');speak(q.who,'……そうですか。よく覚えておきます。','怒',real);resolveQuest(q,false)}
+    renderQuests()}));
+}
+function resolveQuest(q,ok){S.quests=S.quests.filter(x=>x!==q);logLine('sys',`${q.title}：${ok?'達成！':'却下'}`);const el=$('q-'+q.id);if(el){el.classList.add('gone');setTimeout(renderQuests,450)}}
+function spawnQuest(force){
+  if(S.forceQuest){const t=QUESTS.find(q=>q.id===S.forceQuest);S.forceQuest=null;S.quests.push({...t,left:t.ttl,promised:false,fresh:true});return}
+  if(!force&&Math.random()>.65)return;
+  const pool=QUESTS.filter(q=>!q.hidden&&!S.quests.some(x=>x.id===q.id)&&!S.seen.has(q.id));if(!pool.length)return;
+  const base=force?pool.filter(q=>q.kind==='demand'):pool;const t=base[Math.floor(Math.random()*base.length)];
+  S.seen.add(t.id);S.quests.push({...t,left:t.ttl,promised:false,fresh:true});
+}
+
+// ================= 公約ブック（モックデータの閲覧＋シミュレーション） =================
+let bookFrom='title',bookCat='すべて',bookParty='ldp';
+function simulate(p){
+  const v={...INIT};const fx={};
+  for(const r of p.reactions)for(const[k,d]of Object.entries(transformFx(r[3]))){fx[k]=(fx[k]||0)+d;v[k]=clamp(v[k]+d)}
+  return {dA:+(approvalOf(v)-approvalOf(INIT)).toFixed(1),fx};
+}
+function renderBook(){
+  $('ptabs').innerHTML=['all',...PARTIES.map(p=>p.id)].map(id=>{const P=PARTY[id];const n=LDP.filter(x=>id==='all'||x.party===id).length;
+    return `<button data-p="${id}" class="${id===bookParty?'on':''}">${P?`<i style="background:${P.color}"></i>${P.short}<small>${P.seats}議席</small>`:'すべての政党'}<small>${n}件</small></button>`}).join('');
+  $('ptabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{bookParty=b.dataset.p;bookCat='すべて';renderBook()});
+  const P=PARTY[bookParty];
+  $('pinfo').innerHTML=P?`<b>${P.name}</b>　衆院 ${P.seats}議席（2026年2月衆院選）・${P.bloc==='ruling'?'与党':'野党'}　出典：${P.source}${P.note?`<br>※${P.note}`:''}`:'全政党の公約を横断して表示中';
+  const pool=LDP.filter(p=>bookParty==='all'||p.party===bookParty);
+  const cats=['すべて',...new Set(pool.map(p=>p.cat))];
+  $('cats').innerHTML=cats.map(c=>`<button class="${c===bookCat?'on':''}">${c}</button>`).join('');
+  $('cats').querySelectorAll('button').forEach(b=>b.onclick=()=>{bookCat=b.textContent;renderBook()});
+  $('cards').innerHTML=(pool.length?'':'<p style="color:var(--cream)">この政党の公約データはまだありません。</p>')+pool.filter(p=>bookCat==='すべて'||p.cat===bookCat).map(p=>{const PP=PARTY[p.party];
+    const s=simulate(p),rows=Object.entries(s.fx).filter(([,d])=>d).sort((a,b)=>b[1]-a[1]);
+    return `<div class="pc panel" style="--pc:${PP.color}"><div class="ph"><div class="ic"><i class="fa-solid ${p.icon}"></i></div><div><small><span class="pbadge" style="background:${PP.color}">${PP.short}</span>${p.cat}・${p.source}</small><b>${p.title}</b></div></div>
+      <div class="pb"><p class="sum">${p.summary}</p>
+        <div class="sim"><div><small>支持率（即時の予測）</small><b class="num ${s.dA>=0?'up':'dn'}">${s.dA>=0?'+':''}${s.dA}</b></div><div><small>コスト</small><b class="num">${'<i class="fa-solid fa-bolt" style="color:var(--sun2)"></i>'.repeat(p.cost)}</b></div></div>
+        <div class="fxl">${rows.map(([k,d])=>`<span>${FN[k]}</span><div class="bar"><i style="${d>0?`left:50%;width:${d*4}%`:`right:50%;width:${-d*4}%`};background:${d>0?'var(--mint)':'var(--coral)'}"></i></div><b class="${d>0?'up':'dn'}">${d>0?'+':''}${d}</b>`).join('')}</div></div>
+      <div class="pf"><span class="pill">${p.reactions.length}人が反応</span>${bookFrom==='main'?`<button class="btn sun" data-id="${p.id}"><i class="fa-solid fa-bullhorn"></i>この政策を表明</button>`:''}</div></div>`}).join('');
+  $('cards').querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const p=LDP.find(x=>x.id===b.dataset.id);show('main');$('chatIn').value=p.title+'を進めます';$('chatIn').focus()});
+  $('bookBackLbl').textContent=bookFrom==='main'?'官邸に戻る':'タイトルへ';
+}
+function openBook(from){bookFrom=from;renderBook();show('book');$('book').scrollTop=0}
+$('btnBookT').onclick=()=>openBook('title');
+$('btnBookM').onclick=()=>openBook('main');
+$('btnBookBack').onclick=()=>show(bookFrom);
+
+// ================= 画面遷移 =================
+function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.toggle('on',x.id===id))}
+function wipe(sub,main,next,ms=1300){
+  const w=$('wipe');$('wSub').textContent=sub;$('wSub').style.display=sub?'':'none';$('wMain').textContent=main;w.classList.remove('out');w.classList.add('on');
+  setTimeout(()=>{next();w.classList.add('out');setTimeout(()=>{w.querySelector('.bg').style.transition='none';w.classList.remove('on','out');void w.offsetWidth;w.querySelector('.bg').style.transition=''},550)},ms);
+}
+function toast(t,ms=1800){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),ms)}
+function modal(title,text,btns,align){$('mTitle').textContent=title;$('mText').innerHTML=text;$('mText').className=align||'';$('mRow').innerHTML='';
+  btns.forEach(([l,cls,fn])=>{const b=document.createElement('button');b.className='btn '+(cls||'');b.textContent=l;b.onclick=()=>{$('modal').classList.remove('on');fn&&fn()};$('mRow').appendChild(b)});$('modal').classList.add('on')}
+
+function renderRecords(){const r=store.get('moshimo_rec',{best:0,maxAppr:0,plays:0});
+  $('records').innerHTML=`<div class="panel">最長在任<b class="num">${r.best?tenure(r.best):'—'}</b></div><div class="panel">最高支持率<b class="num">${r.maxAppr?r.maxAppr+'%':'—'}</b></div><div class="panel">プレイ回数<b class="num">${r.plays}</b></div>`}
+$('titleScene').innerHTML=sceneSVG('good');$('overScene').innerHTML=sceneSVG('ruin');
+$('btnStart').onclick=()=>{newGame();wipe('第104代','内閣総理大臣に就任！',()=>{renderNews(true);show('news')},1800)};
+$('btnHow').onclick=()=>modal('遊び方','政策は自分の言葉で表明しよう。困ったら「政策」ボタンの公約ブックから選んでもOK。<br>街の人や外国がその場で反応して、支持率が動く。<br>人は得より損に敏感で、うれしさには慣れてしまう。約束を守るほど、言葉が信じてもらえる。<br>次々くる危機と陳情に期限内に応えよう。<br><b>支持率が2ターン連続20%未満／選挙で過半数割れ</b>で失脚！',[['OK','sun',null]],'right');
+
+// 新聞
+const FILLER=[['出生数、過去最少','少子化対策の効果に疑問の声。'],['中小企業の倒産が増加','人手不足と原材料高が直撃。'],['高齢化率30%突破','3人に1人が65歳以上に。'],['実質賃金マイナス続く','賃上げが物価に追いつかない。'],['国債格下げの観測','市場は財政を注視。'],['訪日客が過去最高','観光地では混雑も。']];
+function renderNews(first){
+  const [y,q]=qLabel(S.turn),a=approval(),d=S.prevAppr==null?0:+(a-S.prevAppr).toFixed(1),kind=first?'good':pickScene();
+  const head=first?'新内閣が発足！':(S.lastNews||'政権、動かず');
+  const lead=first?'少子高齢化、長引く低成長、GDP比250%の政府債務。重い課題を背負っての船出となった。新首相は就任会見で「この国の未来から逃げない」と語った。'
+    :S.lastNews?'政府の方針をめぐり、国民の受け止めは割れている。期待の声がある一方、負担増を心配する声も根強い。野党は「場当たり的だ」と批判している。'
+    :'今期、政府は目立った政策を打ち出さなかった。「何もしない内閣」との声も出始めている。';
+  const nq=S.quests.find(x=>x.fresh);const ev=(S.events||[]).splice(0);const cols=shuffle([...FILLER]).slice(0,Math.max(0,3-(nq?1:0)-ev.length));if(nq)cols.unshift([nq.title,`${SPK[nq.who].role}「${nq.say}」`]);ev.forEach(e=>cols.unshift([e,'政権運営への影響は避けられないとの見方が広がっている。']));
+  $('paper').innerHTML=`<div class="np-top"><span class="mast disp">もしも新聞</span><span class="date">${y}年 第${q}四半期</span></div>
+    <div class="np-body"><div><h1 class="disp">${head}</h1><p>${lead}</p></div><div class="photo">${sceneSVG(kind)}</div></div>
+    <div class="np-foot"><div class="poll"><small>内閣支持率</small><b class="num">${Math.round(a)}%</b><small>${first?'発足時':(d>=0?'▲':'▼')+Math.abs(d)}</small></div>${cols.map(([t,p])=>`<div><h4>${t}</h4><p>${p}</p></div>`).join('')}</div>`;
+  const pp=$('paper');pp.style.animation='none';void pp.offsetWidth;pp.style.animation='';
+}
+$('btnOffice').onclick=async()=>{
+  show('main');renderHUD();renderQuests();setScene(pickScene(),true);
+  const w=$('world');w.scrollLeft=(w.scrollWidth-w.clientWidth)/2;
+  await wait(900);
+  if(S.turn===0){logLine('sys','新内閣 発足！');speak('cab','総理、就任おめでとうございます！まずは所信表明を。下の欄にどうぞ。','安');await wait(1800);speak('press','総理、物価高・少子化・財政。最優先はどれですか？','疑')}
+  else{const [y,q]=qLabel(S.turn);logLine('sys',`${y}年 Q${q}`);
+    for(const q2 of S.quests.filter(x=>x.fresh)){q2.fresh=false;speak(q2.who,q2.say,q2.kind==='crisis'?'焦':'疑');await wait(1600)}
+    for(const [q2,fx] of S.expired||[]){speak(q2.who,q2.kind==='crisis'?'結局、何もしてくれなかったじゃないか！':'約束、破りましたね。','怒',fx);await wait(1600)}
+    S.expired=null}
+};
+
+// ターン終了
+$('btnEnd').onclick=()=>{if(!busy)wipe('','次の四半期へ',endQuarter,1000)};
+function endQuarter(){
+  S.prevAppr=approval();S.expired=[];
+  FACS.forEach(([id])=>S.v[id]=clamp(S.v[id]-1.2+(Math.random()*2-1)));S.v.yF=clamp(S.v.yF-.5);S.v.sme=clamp(S.v.sme-.5);
+  // 慣れ：上がった分の一時的な部分が半分ずつ抜けていく
+  for(const k in S.fade){const d=S.fade[k]*.5;S.v[k]=clamp(S.v[k]-d);S.fade[k]-=d;if(S.fade[k]<.2)delete S.fade[k]}
+  // バンドワゴン／沈黙の螺旋：高い支持はさらに支持を呼び、低い支持は離反を呼ぶ
+  {const a0=approval();const dd=a0>55?.4:a0<30?-.4:0;if(dd)FACS.forEach(([id])=>S.v[id]=clamp(S.v[id]+dd))}
+  // 財政のツケ：重い財政支出が積み上がると、市場と将来不安が支持を削る
+  if(S.bill>=6){S.bill-=6;applyFx({big:-4,oM:-2,oF:-2,yM:-2,yF:-2,mM:-1});S.events.push('国債格下げの観測、長期金利が上昇');trustDelta(-3)}
+  // 連立：関係が冷えると維新が離脱
+  S.coal+=S.coal<50?2:0;
+  if(!S.coalBroken&&S.coal<25){S.coalBroken=true;S.events.push('維新、連立離脱を表明');trustDelta(-5)}
+  for(const q of [...S.quests]){if(q.kind==='demand'&&!q.promised){S.quests=S.quests.filter(x=>x!==q);continue}
+    q.left--;if(q.left<=0){const real=applyFx(q.ng);S.trust=Math.max(0,S.trust-(q.kind==='crisis'?8:15));S.expired.push([q,real]);S.quests=S.quests.filter(x=>x!==q)}}
+  S.turn++;S.elec--;S.gems=Math.min(5,S.gems+(approval()>40?2:1));spawnQuest(S.turn===1);
+  const a=approval();S.maxAppr=Math.max(S.maxAppr,Math.round(a));S.low=a<20?S.low+1:0;
+  const [y,q]=qLabel(S.turn);
+  if(S.low>=2)return wipe('与党内で退陣論','内閣総辞職',()=>gameOver('resign'),1500);
+  if(S.elec<=0)return wipe('任期満了','衆議院選挙！',startElection,1500);
+  renderNews(false);show('news');S.lastNews=null;
+}
+$('btnLog').onclick=()=>$('log').classList.toggle('on');$('btnLogX').onclick=()=>$('log').classList.remove('on');
+$('btnDissolve').onclick=()=>modal('解散総選挙する？',`いまの内閣支持率は <b>${approval().toFixed(1)}%</b>。<br>勝てば任期リセット、負ければ即失脚！`,[['やめる','',null],['解散！','coral',()=>wipe('衆議院','解散総選挙！',startElection,1500)]]);
+
+// 選挙
+function startElection(){
+  // 投票率で重み付けした「実際の得票」：高齢層ほど投票に行く
+  const TURNOUT={yM:.45,yF:.45,mM:.6,mF:.6,oM:.72,oF:.7,big:.65,sme:.65,agr:.72,uni:.65};
+  const tw=FACS.reduce((n,[id,,w])=>n+w*TURNOUT[id],0),a=+(FACS.reduce((n,[id,,w])=>n+w*TURNOUT[id]*S.v[id],0)/tw).toFixed(1);
+  let ruling=Math.round(465*Math.min(.72,Math.max(.2,.2+a*.008+(Math.random()*.04-.02))));
+  if(S.coalBroken)ruling=Math.round(ruling*.9);
+  const win=ruling>=233;
+  // 与党（自民・維新）と野党を、2026年衆院選の議席比で配分
+  const alloc=(ids,total)=>{const w=ids.map(id=>Math.max(PARTY[id].seats,.5)),ws=w.reduce((a,b)=>a+b,0);const r=ids.map((id,i)=>[id,Math.floor(total*w[i]/ws)]);let rest=total-r.reduce((a,x)=>a+x[1],0);for(let i=0;rest>0;i=(i+1)%r.length,rest--)r[i][1]++;return r};
+  const inRuling=p=>p.bloc==='ruling'&&!(S.coalBroken&&p.id==='ishin');
+  const seats=[...alloc(PARTIES.filter(inRuling).map(p=>p.id),ruling),...alloc(PARTIES.filter(p=>!inRuling(p)).map(p=>p.id),465-ruling)];
+  $('eTitle').textContent=`第${S.elecNo}回 衆議院選挙`;
+  $('tally').innerHTML=`<div class="panel" style="background:#ffc93c"><small>与党（${S.coalBroken?'自民':'自民・維新'}）</small><b class="num">${ruling}</b></div>`+seats.filter(([,n])=>n>0).map(([id,n])=>`<div class="panel" style="background:${PARTY[id].color}"><small>${PARTY[id].short}</small><b class="num">${n}</b></div>`).join('');
+  const pts=[],rows=10,rad=[...Array(rows)].map((_,i)=>120+i*19),sum=rad.reduce((x,y)=>x+y);let made=0;
+  rad.forEach((rr,ri)=>{const n=ri===rows-1?465-made:Math.round(465*rr/sum);made+=n;for(let i=0;i<n;i++){const t=Math.PI-(Math.PI*i/(n-1));pts.push([t,320+rr*Math.cos(t),320-rr*Math.sin(t)])}});
+  pts.sort((p,q)=>q[0]-p[0]);let k=0,out='';
+  seats.map(([id,n])=>[n,PARTY[id].color]).forEach(([n,c])=>{for(let i=0;i<n;i++,k++)out+=`<circle cx="${pts[k][1].toFixed(1)}" cy="${pts[k][2].toFixed(1)}" r="6.5" fill="${c}" stroke="#1f2244" stroke-width="1.5" opacity="0"><animate attributeName="opacity" from="0" to="1" dur=".2s" begin="${k*5/1000}s" fill="freeze"/></circle>`});
+  $('hemi').innerHTML=out+`<line x1="320" y1="110" x2="320" y2="332" stroke="#fff5e1" stroke-width="3" stroke-dasharray="6 6"/><text x="320" y="100" text-anchor="middle" fill="#fff5e1" font-size="13" font-family="M PLUS Rounded 1c" font-weight="800">過半数 233</text>`;
+  const rb=$('eRes');rb.classList.remove('on');rb.textContent=win?'与党 過半数確保！':'与党 過半数割れ…';rb.style.background=win?'var(--sun)':'var(--coral)';rb.style.color=win?'var(--navy)':'#fff';
+  const btn=$('btnAfterElec');btn.style.display='none';show('election');
+  setTimeout(()=>{rb.classList.add('on');btn.style.display='';
+    if(win){btn.innerHTML='政権続投 <i class="fa-solid fa-arrow-right"></i>';btn.onclick=()=>{S.elec=16;S.elecNo++;S.gems=5;S.lastNews=`与党${ruling}議席、政権続投へ`;renderNews(false);show('news')}}
+    else{btn.innerHTML='退陣する';btn.onclick=()=>wipe('政権交代','首相退陣',()=>gameOver('election'),1300)}},2600);
+}
+
+// 失脚
+function gameOver(kind){
+  const t=S.turn;
+  const reasons={resign:'内閣支持率が2ターン連続で20%を下回り、与党内から退陣論が噴出。内閣総辞職となりました。',election:'総選挙で与党が過半数割れ。政権交代です。'};
+  const tn=t<4?'1年もたない短命宰相':S.taxUp?'増税に散った宰相':kind==='election'?'民意に敗れた宰相':t>=20?'長期政権の宰相':'志半ばの宰相';
+  $('oReason').textContent=reasons[kind];$('oTitle').textContent=tn;
+  $('oStats').innerHTML=`<div class="panel"><small>在任期間</small><b class="num">${tenure(t)}</b></div><div class="panel"><small>スコア</small><b class="num">${(t*100+S.maxAppr*10).toLocaleString()}</b></div><div class="panel"><small>最高支持率</small><b class="num">${S.maxAppr}%</b></div>`;
+  const list=[...RIVALS.map(([n,tt])=>[n,tt,false]),['あなた',t,true]].sort((p,q)=>q[1]-p[1]);
+  $('oRank').innerHTML=list.map(([n,tt,me],i)=>`<div class="${me?'me':''}"><span class="num">${i+1}</span><span>${n}${me?' <span class="pill" style="border-color:var(--coral2)">NEW</span>':''}</span><b class="num">${tenure(tt)}</b></div>`).join('');
+  const r=store.get('moshimo_rec',{best:0,maxAppr:0,plays:0});store.set('moshimo_rec',{best:Math.max(r.best,t),maxAppr:Math.max(r.maxAppr,S.maxAppr),plays:r.plays+1});
+  show('over');
+}
+$('btnRetry').onclick=()=>wipe('','タイトルへ',()=>{renderRecords();show('title')},800);
+$('btnShare').onclick=()=>toast('シェア機能は準備中です');
+renderRecords();
+</script>
+</body>
+</html>

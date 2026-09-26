@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "moshimo-mock",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "python3 -m http.server ${PORT:-8933} --directory mock"],
+      "port": 8933,
+      "autoPort": true
+    }
+  ]
+}
