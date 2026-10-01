@@ -221,10 +221,17 @@ button{font:inherit;color:inherit;cursor:pointer}
 .book-h .btn{margin-left:auto}
 .parties{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .parties button{display:flex;align-items:center;gap:6px;border:var(--ol);border-color:var(--cream);background:transparent;color:var(--cream);border-radius:10px;padding:5px 12px;font-size:13px;font-weight:800}
-.parties button i{width:10px;height:10px;border-radius:50%;border:2px solid var(--cream)}
 .parties button small{font-family:Rubik;font-size:11px;opacity:.8}
 .parties button.on{background:var(--cream);color:var(--navy);box-shadow:0 4px 0 #0006}
-.pinfo{color:var(--cream);font-size:12px;font-weight:500;margin:-2px 0 12px;line-height:1.6;opacity:.9}
+.pinfo{display:flex;align-items:center;gap:14px;color:var(--cream);font-size:12px;font-weight:500;margin:-2px 0 12px;line-height:1.6}
+.pinfo>div{opacity:.9}
+.pinfo b{font-size:15px}
+.plogo{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;border:2px solid var(--navy);box-shadow:0 0 0 2px var(--cream);color:#fff;font-family:"Dela Gothic One",sans-serif;font-size:7px;line-height:1;letter-spacing:-.5px;text-shadow:0 1px 0 #0005;overflow:hidden}
+.plogo.all{background:var(--navy2);font-size:11px}
+.plogo.img{background:#fff;object-fit:contain;padding:2px}
+.plogo.big{width:84px;height:84px;border-radius:20px;border-width:3px;box-shadow:0 0 0 3px var(--cream),0 6px 0 #0006;font-size:22px;letter-spacing:0}
+.plogo.big.all{font-size:36px}
+.plogo.big.img{padding:6px}
 .pinfo b{color:var(--sun)}
 .pbadge{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:999px;border:2px solid var(--navy);font-size:10px;font-weight:800;color:#fff;margin-right:4px}
 .cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
@@ -294,6 +301,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   .parties,.cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-16px;margin-right:-16px;padding:0 16px 4px}
   .parties button,.cats button{flex:none}
   .book-h h2{font-size:24px}
+  .plogo.big{width:64px;height:64px;border-radius:16px;font-size:17px}
   .toast{top:auto;bottom:240px;white-space:normal;max-width:calc(100vw - 32px);text-align:center}
   .qc .qh{padding:5px 10px}.qc .qh b{font-size:12.5px}
   .qc .qb{padding:6px 10px 8px;font-size:11.5px;line-height:1.5}

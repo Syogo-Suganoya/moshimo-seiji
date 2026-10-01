@@ -20,7 +20,7 @@ Web版は Vercel、スキル版は GitHub（Claude Code のプラグイン、cla
    | `GEMINI_MODEL` | 省略可。既定は `gemini-3.5-flash-lite` |
    | `RATE_LIMIT_ID` | 省略可。既定は `moshimo-react`（下の Firewall のルールと同じにする） |
 
-4. **Deploy** を押す。以後は `main` に push するたびに本番へ、プルリクエストごとにプレビューへ公開される。
+4. **Deploy** を押す。以後は `main` に push するたびに本番へ、プルリクエストごとにプレビューへ公開される（Vercel の Git 連携による CD。GitHub Actions 側の設定はいらない）。本番は https://moshimo-seiji.vercel.app/ 。
 
 ### 2. 呼び出し回数を制限する（必須）
 `/api/react` は Gemini を呼ぶので、制限がないと誰でもキーを使えてしまう。コードは `@vercel/firewall` の `checkRateLimit` で、Firewall のルールを確かめている（`web/app/api/react/route.ts`）。

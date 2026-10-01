@@ -27,6 +27,8 @@ export interface Party {
   bloc: 'ruling' | 'opp';
   source: string;
   note?: string;
+  // ロゴ画像のファイル名（web/public/logos/ に置く）。ないときは党の色と略称のエンブレムを出す
+  logo?: string;
 }
 
 // 公約データ（data/policies.json）。reactions がなければ fx からセリフを作る

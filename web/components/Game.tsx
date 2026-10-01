@@ -816,13 +816,17 @@ function Book({ from, party, cat, setParty, setCat, back, pick }: {
             const n = POLICY_DATA.filter((x) => id === 'all' || x.party === id).length;
             return (
               <button key={id} className={id === party ? 'on' : ''} onClick={() => setParty(id)}>
-                {PP ? <><i style={{ background: PP.color }} />{PP.short}<small>{PP.seats}議席</small></> : 'すべての政党'}<small>{n}件</small>
+                <PartyLogo id={id} />
+                {PP ? <>{PP.short}<small>{PP.seats}議席</small></> : 'すべての政党'}<small>{n}件</small>
               </button>
             );
           })}
         </div>
         <div className="pinfo">
-          {P ? <><b>{P.name}</b>　衆院 {P.seats}議席（2026年2月衆院選）・{P.bloc === 'ruling' ? '与党' : '野党'}　出典：{P.source}{P.note && <><br />※{P.note}</>}</> : '全政党の公約を横断して表示中'}
+          <PartyLogo id={party} big />
+          <div>
+            {P ? <><b>{P.name}</b>　衆院 {P.seats}議席（2026年2月衆院選）・{P.bloc === 'ruling' ? '与党' : '野党'}<br />出典：{P.source}{P.note && <><br />※{P.note}</>}</> : <><b>すべての政党</b><br />全政党の公約を横断して表示中</>}
+          </div>
         </div>
         <div className="cats">
           {cats.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
@@ -862,6 +866,15 @@ function Book({ from, party, cat, setParty, setCat, back, pick }: {
       </div>
     </section>
   );
+}
+
+// 政党のロゴ。画像（PARTY[id].logo）がなければ、党の色と略称のエンブレムを出す
+function PartyLogo({ id, big = false }: { id: string; big?: boolean }) {
+  const P = PARTY[id];
+  const cls = `plogo${big ? ' big' : ''}`;
+  if (!P) return <span className={`${cls} all`}><i className="fa-solid fa-landmark" /></span>;
+  if (P.logo) return <img className={`${cls} img`} src={`/logos/${P.logo}`} alt={`${P.name}のロゴ`} />;
+  return <span className={cls} style={{ background: P.color }} aria-hidden>{P.short}</span>;
 }
 
 function FxRow({ name, d }: { name: string; d: number }) {
