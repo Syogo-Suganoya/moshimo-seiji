@@ -802,66 +802,87 @@ function Book({ from, party, cat, setParty, setCat, back, pick }: {
   const P = PARTY[party];
   const pool = POLICY_DATA.filter((p) => party === 'all' || p.party === party);
   const cats = ['すべて', ...new Set(pool.map((p) => p.cat))];
+  const shown = pool.filter((p) => cat === 'すべて' || p.cat === cat);
   return (
     <section className="screen on" id="book">
       <div className="book">
-        <div className="book-h">
-          <h2 className="disp"><i className="fa-solid fa-book-open" /> 公約ブック</h2>
-          <p>各政党の直近の公約（主に2026年2月の第51回衆院選）をもとにしたデータです。2026年9月時点で整理。支持率の変化は、ゲーム開始時点で1回表明した場合の<b>ゲーム内シミュレーション</b>で、実際の世論を示すものではありません。</p>
+        <header className="book-top">
           <button className="btn sun" onClick={back}><i className="fa-solid fa-arrow-left" />{from === 'main' ? '官邸に戻る' : 'タイトルへ'}</button>
-        </div>
-        <div className="parties">
-          {['all', ...PARTIES.map((p) => p.id)].map((id) => {
-            const PP = PARTY[id];
-            const n = POLICY_DATA.filter((x) => id === 'all' || x.party === id).length;
-            return (
-              <button key={id} className={id === party ? 'on' : ''} onClick={() => setParty(id)}>
-                <PartyLogo id={id} />
-                {PP ? <>{PP.short}<small>{PP.seats}議席</small></> : 'すべての政党'}<small>{n}件</small>
-              </button>
-            );
-          })}
-        </div>
-        <div className="pinfo">
-          <PartyLogo id={party} big />
-          <div>
-            {P ? <><b>{P.name}</b>　衆院 {P.seats}議席（2026年2月衆院選）・{P.bloc === 'ruling' ? '与党' : '野党'}<br />出典：{P.source}{P.note && <><br />※{P.note}</>}</> : <><b>すべての政党</b><br />全政党の公約を横断して表示中</>}
-          </div>
-        </div>
-        <div className="cats">
-          {cats.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
-        </div>
-        <div className="cards">
-          {!pool.length && <p style={{ color: 'var(--cream)' }}>この政党の公約データはまだありません。</p>}
-          {pool.filter((p) => cat === 'すべて' || p.cat === cat).map((p) => {
-            const PP = PARTY[p.party];
-            const s = simulate(p.id);
-            const rows = (Object.entries(s.fx) as [FacId, number][]).filter(([, d]) => d).sort((x, y) => y[1] - x[1]);
-            return (
-              <div key={p.id} className="pc panel" style={{ ['--pc' as string]: PP.color }}>
-                <div className="ph">
-                  <div className="ic"><i className={`fa-solid ${p.icon}`} /></div>
-                  <div><small><span className="pbadge" style={{ background: PP.color }}>{PP.short}</span>{p.cat}・{p.source ?? PP.source}</small><b>{p.title}</b></div>
-                </div>
-                <div className="pb">
-                  <p className="sum">{p.summary}</p>
-                  <div className="sim">
-                    <div><small>支持率（即時の予測）</small><b className={`num ${s.dA >= 0 ? 'up' : 'dn'}`}>{s.dA >= 0 ? '+' : ''}{s.dA}</b></div>
-                    <div><small>コスト</small><b className="num">{Array.from({ length: p.cost }, (_, i) => <i key={i} className="fa-solid fa-bolt" style={{ color: 'var(--sun2)' }} />)}</b></div>
+          <h2 className="disp">公約ブック</h2>
+          <span className="book-count"><b className="num">{shown.length}</b>枚</span>
+        </header>
+        <div className="binder">
+          <nav className="tabs" aria-label="政党">
+            {['all', ...PARTIES.map((p) => p.id)].map((id) => {
+              const PP = PARTY[id];
+              const n = POLICY_DATA.filter((x) => id === 'all' || x.party === id).length;
+              return (
+                <button
+                  key={id}
+                  className={`tab${id === party ? ' on' : ''}`}
+                  style={{ ['--tc' as string]: PP?.color ?? 'var(--navy2)' }}
+                  aria-pressed={id === party}
+                  onClick={() => setParty(id)}
+                >
+                  <b>{PP ? PP.short : 'すべて'}</b><small className="num">{n}</small>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="page" style={{ ['--party' as string]: P?.color ?? 'var(--navy2)' }}>
+            <div className="pinfo">
+              <PartyLogo id={party} big />
+              <div className="pi">
+                <small>{P ? (P.bloc === 'ruling' ? '与党' : '野党') : '全政党'}</small>
+                <b>{P ? P.name : 'すべての政党'}</b>
+                {P ? (
+                  <div className="seats">
+                    <span className="track"><i style={{ width: `${(P.seats / 465) * 100}%` }} /></span>
+                    <span className="num">{P.seats}</span>議席
                   </div>
-                  <div className="fxl">
-                    {rows.map(([k, d]) => (
-                      <FxRow key={k} name={FN[k]} d={d} />
-                    ))}
-                  </div>
-                </div>
-                <div className="pf">
-                  <span className="pill">{s.n}人が反応</span>
-                  {from === 'main' && <button className="btn sun" onClick={() => pick(p.title)}><i className="fa-solid fa-bullhorn" />この政策を表明</button>}
-                </div>
+                ) : <p>11政党の公約をまとめて見る</p>}
               </div>
-            );
-          })}
+            </div>
+            {P && <p className="psrc">出典：{P.source}（衆院の議席は2026年2月の選挙の結果）{P.note && <><br />※{P.note}</>}</p>}
+            <div className="cats">
+              {cats.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
+            </div>
+            <div className="cards">
+              {!pool.length && <p className="empty">この政党の公約データはまだありません。</p>}
+              {shown.map((p) => {
+                const PP = PARTY[p.party];
+                const s = simulate(p.id);
+                const rows = (Object.entries(s.fx) as [FacId, number][]).filter(([, d]) => d).sort((x, y) => y[1] - x[1]);
+                return (
+                  <article key={p.id} className="pc" style={{ ['--pc' as string]: PP.color }}>
+                    <div className="pc-top">
+                      <span className="cost" aria-label={`コスト ${p.cost}`}>
+                        {Array.from({ length: p.cost }, (_, i) => <i key={i} className="fa-solid fa-bolt" />)}
+                      </span>
+                      {party === 'all' && <span className="chip">{PP.short}</span>}
+                      <span className="chip">{p.cat}</span>
+                    </div>
+                    <div className="pc-art" aria-hidden><i className={`fa-solid ${p.icon}`} /></div>
+                    <div className="pc-body">
+                      <h3>{p.title}</h3>
+                      <p className="sum">{p.summary}</p>
+                      <div className="fxl">
+                        {rows.map(([k, d]) => <FxRow key={k} name={FN[k]} d={d} />)}
+                      </div>
+                      {p.source && <small className="src">{p.source}</small>}
+                    </div>
+                    <div className="pc-foot">
+                      <span className={`pow ${s.dA >= 0 ? 'up' : 'dn'}`}><small>支持率</small><b className="num">{s.dA >= 0 ? '+' : ''}{s.dA}</b></span>
+                      {from === 'main'
+                        ? <button className="btn sun" onClick={() => pick(p.title)}><i className="fa-solid fa-bullhorn" />表明する</button>
+                        : <span className="chip">{s.n}人が反応</span>}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <p className="book-note">支持率は、ゲーム開始時に1回表明したときのゲーム内の予測です。実際の世論を示すものではありません。公約は2026年9月時点の要旨です。</p>
+          </div>
         </div>
       </div>
     </section>
