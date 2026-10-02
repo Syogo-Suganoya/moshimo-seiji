@@ -9,7 +9,7 @@ import {
   type ElectionResult, type Emotion, type FacId, type Fx, type GameState, type Line, type Policy,
   type SceneKind, type SpeakerId,
 } from '@moshimo/engine';
-import { SCENES, sceneSVG } from '@/lib/scene';
+import { SCENES } from '@/lib/scene';
 import { EMO, FN, ME, SPEAKER_IDS, SPK, moodCol, moodIc, role, store, wait } from '@/lib/ui';
 
 type Screen = 'title' | 'book' | 'news' | 'main' | 'election' | 'over';
@@ -31,8 +31,9 @@ const facAvg = (v: Record<FacId, number>, k: SpeakerId) => {
   const f = GAME.speakers[k].fac;
   return f.length ? Math.round(f.reduce((a, x) => a + v[x], 0) / f.length) : null;
 };
-const Svg = ({ html, className, style }: { html: string; className?: string; style?: React.CSSProperties }) => (
-  <div className={className} style={style} dangerouslySetInnerHTML={{ __html: html }} />
+// 背景の絵（docs/images/background を web/public/bg に WebP で置いたもの）
+const Bg = ({ kind, className, style }: { kind: SceneKind; className?: string; style?: React.CSSProperties }) => (
+  <div className={className} style={style}><img src={`/bg/${kind}.webp`} alt="" draggable={false} /></div>
 );
 
 export default function Game() {
@@ -60,7 +61,7 @@ export default function Game() {
   const [logOpen, setLogOpen] = useState(false);
   const [apTip, setApTip] = useState(false);
   const [shake, setShake] = useState(0);
-  const [layers, setLayers] = useState<{ kind: SceneKind; id: number; html: string }[]>([]);
+  const [layers, setLayers] = useState<{ kind: SceneKind; id: number }[]>([]);
   const [cap, setCap] = useState<{ text: string; n: number } | null>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -194,7 +195,7 @@ export default function Game() {
   const setScene = useCallback((kind: SceneKind, instant = false) => {
     setLayers((ls) => {
       if (!instant && ls.at(-1)?.kind === kind) return ls;
-      return [...ls.slice(-1), { kind, id: Date.now(), html: sceneSVG(kind) }];
+      return [...ls.slice(-1), { kind, id: Date.now() }];
     });
     const n = Date.now();
     setCap({ text: SCENES[kind].cap, n });
@@ -399,8 +400,6 @@ export default function Game() {
   // ================= 描画 =================
   const v = shownV ?? game.v;
   const a = approvalOf(v);
-  const titleScene = useMemo(() => (mounted ? sceneSVG('good') : ''), [mounted]);
-  const overScene = useMemo(() => (mounted ? sceneSVG('ruin') : ''), [mounted]);
   const scene = layers.at(-1)?.kind;
   if (!mounted) return null;
 
@@ -430,7 +429,7 @@ export default function Game() {
 
       {screen === 'title' && (
         <section className="screen on" id="title">
-          <Svg className="scn" html={titleScene} />
+          <Bg className="scn" kind="good" />
           <div className="t-wrap"><div>
             <h1 className="logo disp">もしも<span>政治</span></h1>
             <div className="sub">あなたが総理なら、この国を何年もたせられる？</div>
@@ -469,7 +468,7 @@ export default function Game() {
               <div className="np-top"><span className="mast disp">もしも新聞</span><span className="date">{paper.year}年 第{paper.quarter}四半期</span></div>
               <div className="np-body">
                 <div><h1 className="disp">{paper.head}</h1><p>{paper.lead}</p></div>
-                <Svg className="photo" html={sceneSVG(paper.scene)} />
+                <Bg className="photo" kind={paper.scene} />
               </div>
               <div className="np-foot">
                 <div className="poll"><small>内閣支持率</small><b className="num">{paper.approval}%</b><small>{paper.delta == null ? '発足時' : `${paper.delta >= 0 ? '▲' : '▼'}${Math.abs(paper.delta)}`}</small></div>
@@ -486,9 +485,8 @@ export default function Game() {
           <div className="world" ref={worldRef}>
             <div className="stage" ref={stageRef}>
               {layers.map((l, i) => (
-                <Svg key={l.id} className={`layer ${i > 0 ? 'fadein' : ''}`} html={l.html} />
+                <Bg key={l.id} className={`layer ${i > 0 ? 'fadein' : ''}`} kind={l.kind} />
               ))}
-              <div className="rain" style={{ opacity: scene && SCENES[scene].rain ? 1 : 0 }} />
               <div className={`flash ${scene && SCENES[scene].rain ? 'on' : ''}`} />
               <div>
                 {SPEAKER_IDS.map((k) => (
@@ -623,7 +621,7 @@ export default function Game() {
         </section>
       )}
 
-      {screen === 'over' && <Over game={game} scene={overScene} retry={() => wipe('', 'タイトルへ', () => setScreen('title'), 800)} share={() => showToast('シェア機能は準備中です')} />}
+      {screen === 'over' && <Over game={game} retry={() => wipe('', 'タイトルへ', () => setScreen('title'), 800)} share={() => showToast('シェア機能は準備中です')} />}
     </>
   );
 }
@@ -752,12 +750,12 @@ function Hemicycle({ seats }: { seats: [string, number][] }) {
   );
 }
 
-function Over({ game, scene, retry, share }: { game: GameState; scene: string; retry: () => void; share: () => void }) {
+function Over({ game, retry, share }: { game: GameState; retry: () => void; share: () => void }) {
   const s = summary(game);
   const list = [...GAME.rivals.map(([n, t]) => [n, t, false] as const), ['あなた', game.turn, true] as const].sort((p, q) => q[1] - p[1]);
   return (
     <section className="screen on" id="over">
-      <Svg className="scn" html={scene} style={{ opacity: 0.35 }} />
+      <Bg className="scn" kind="ruin" style={{ opacity: 0.35 }} />
       <div className="ov"><div>
         <h1 className="ov-t disp">失脚！</h1>
         <div><div className="ov-r panel">{s.reason}</div></div>
@@ -833,17 +831,10 @@ function Book({ from, party, cat, setParty, setCat, back, pick }: {
             <div className="pinfo">
               <PartyLogo id={party} big />
               <div className="pi">
-                <small>{P ? (P.bloc === 'ruling' ? '与党' : '野党') : '全政党'}</small>
                 <b>{P ? P.name : 'すべての政党'}</b>
-                {P ? (
-                  <div className="seats">
-                    <span className="track"><i style={{ width: `${(P.seats / 465) * 100}%` }} /></span>
-                    <span className="num">{P.seats}</span>議席
-                  </div>
-                ) : <p>11政党の公約をまとめて見る</p>}
               </div>
             </div>
-            {P && <p className="psrc">出典：{P.source}（衆院の議席は2026年2月の選挙の結果）{P.note && <><br />※{P.note}</>}</p>}
+            {P?.note && <p className="psrc">※{P.note}</p>}
             <div className="cats">
               {cats.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
             </div>

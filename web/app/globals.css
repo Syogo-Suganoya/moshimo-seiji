@@ -50,7 +50,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ===== タイトル ===== */
 #title .scn,#over .scn{position:absolute;inset:0}
-#title .scn svg,#over .scn svg{width:100%;height:100%;display:block}
+#title .scn img,#over .scn img{width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block}
 .t-wrap{position:relative;min-height:100%;display:grid;place-items:center;padding:24px 16px;text-align:center}
 .logo{margin:0;font-size:clamp(58px,12vw,128px);line-height:1;color:var(--sun);-webkit-text-stroke:4px var(--navy);paint-order:stroke fill;text-shadow:0 8px 0 var(--navy);letter-spacing:.02em;transform:rotate(-3deg)}
 .logo span{color:var(--coral)}
@@ -74,7 +74,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .np h1{margin:0 0 10px;font-size:clamp(26px,4.2vw,40px);line-height:1.15}
 .np p{margin:0;font-size:13px;line-height:1.8;font-weight:500}
 .np .photo{border:var(--ol);border-radius:10px;overflow:hidden;aspect-ratio:16/9}
-.np .photo svg{width:100%;height:100%;display:block}
+.np .photo img{width:100%;height:100%;object-fit:cover;display:block}
 .np-foot{display:grid;grid-template-columns:130px repeat(3,1fr);gap:14px;margin-top:14px;border-top:2px dashed var(--navy);padding-top:12px}
 .np-foot h4{margin:0 0 4px;font-size:14px}
 .np-foot p{font-size:12px}
@@ -88,9 +88,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .world::-webkit-scrollbar{display:none}
 .stage{position:absolute;left:0;bottom:0;width:max(100vw,calc(100vh*16/9),900px);aspect-ratio:16/9}
 .layer{position:absolute;inset:0;transition:opacity 1.6s ease}
-.layer svg{width:100%;height:100%;display:block}
-.rain{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(105deg,#fff0 0 16px,#cfe6ff55 16px 18px);background-size:200px 200px;animation:rain .35s linear infinite;opacity:0;transition:opacity 1s}
-@keyframes rain{to{background-position:-40px 200px}}
+.layer img{width:100%;height:100%;object-fit:cover;object-position:50% 100%;display:block;user-select:none}
 .flash{position:absolute;inset:0;pointer-events:none;background:#fff;opacity:0}
 .flash.on{animation:flash 7s infinite}
 @keyframes flash{0%,92%,100%{opacity:0}93%{opacity:.6}94%{opacity:0}95.5%{opacity:.4}96.5%{opacity:0}}
@@ -231,14 +229,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .page{position:relative;z-index:1;min-height:70vh;padding:0 20px 20px;background:var(--cream);border:var(--ol);border-radius:4px 20px 20px 20px;box-shadow:0 8px 0 #0007}
 .pinfo{display:flex;align-items:center;gap:18px;margin:0 -20px 12px;padding:18px 20px;border-bottom:var(--ol);border-radius:2px 17px 0 0;background:repeating-linear-gradient(-45deg,#ffffff1f 0 14px,transparent 14px 28px),var(--party);color:#fff}
 .pi{min-width:0}
-.pi small{display:inline-block;padding:0 10px;border-radius:999px;background:var(--navy);color:var(--cream);font-size:11px;line-height:20px}
-.pi b{display:block;margin:6px 0 8px;font-size:28px;font-weight:800;line-height:1.15;letter-spacing:.04em;text-shadow:2px 0 0 var(--navy),-2px 0 0 var(--navy),0 2px 0 var(--navy),0 -2px 0 var(--navy),2px 2px 0 var(--navy),-2px 2px 0 var(--navy),2px -2px 0 var(--navy),-2px -2px 0 var(--navy),0 4px 0 var(--navy)}
-.pi p{margin:0;font-size:13px;text-shadow:0 2px 0 #0006}
-.seats{display:flex;align-items:center;gap:8px;font-size:12px;text-shadow:0 2px 0 #0006}
-.seats .num{font-size:20px}
-.seats .track{position:relative;width:220px;height:14px;border:2px solid var(--navy);border-radius:7px;background:#ffffffaa;overflow:hidden}
-.seats .track i{position:absolute;left:0;top:0;bottom:0;background:var(--navy)}
-.seats .track::after{content:"";position:absolute;left:50.1%;top:0;bottom:0;border-left:2px dashed var(--coral2)}
+.pi b{display:block;margin:0;font-size:28px;font-weight:800;line-height:1.15;letter-spacing:.04em;text-shadow:2px 0 0 var(--navy),-2px 0 0 var(--navy),0 2px 0 var(--navy),0 -2px 0 var(--navy),2px 2px 0 var(--navy),-2px 2px 0 var(--navy),2px -2px 0 var(--navy),-2px -2px 0 var(--navy),0 4px 0 var(--navy)}
 .plogo{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;border:2px solid var(--navy);color:#fff;font-family:"Dela Gothic One",sans-serif;font-size:7px;line-height:1;overflow:hidden}
 .plogo.all{background:var(--navy2)}
 .plogo.img{background:#fff;object-fit:contain;padding:2px}
@@ -333,8 +324,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   .pinfo{margin:0 -12px 12px;padding:14px 12px;gap:12px;border-radius:2px 2px 0 0}
   .plogo.big{width:64px;height:64px;border-radius:16px;font-size:17px}
   .pi b{font-size:21px}
-  .seats .track{width:120px}
-  .cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px 14px;padding:0 12px 4px}
+    .cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px 14px;padding:0 12px 4px}
   .cats button{flex:none}
   .toast{top:auto;bottom:240px;white-space:normal;max-width:calc(100vw - 32px);text-align:center}
   .qc .qh{padding:5px 10px}.qc .qh b{font-size:12.5px}

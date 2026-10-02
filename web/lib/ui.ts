@@ -1,16 +1,16 @@
 // 画面だけで使う定義（アイコン・色・街の中の位置）。ゲームの数値は engine / data 側に置く
 import { GAME, type Emotion, type FacId, type SpeakerId } from '@moshimo/engine';
 
-// x, y は背景（1600×900）の中の位置
+// x, y は背景（1600×900 換算）の中の位置。絵の建物に合わせる：官邸＝議事堂、年金暮らし＝団地、会社員＝オフィス街、労働組合＝工場、大学生＝時計塔
 export const SPK: Record<SpeakerId, { ic: string; x: number; y: number; c: string }> = {
-  cab: { ic: 'fa-clipboard-list', x: 612, y: 592, c: '#c7b8ff' },
-  old: { ic: 'fa-person-cane', x: 268, y: 546, c: '#ffb3a7' },
+  cab: { ic: 'fa-clipboard-list', x: 694, y: 470, c: '#c7b8ff' },
+  old: { ic: 'fa-person-cane', x: 395, y: 470, c: '#ffb3a7' },
   agr: { ic: 'fa-wheat-awn', x: 140, y: 660, c: '#9be3a4' },
   sme: { ic: 'fa-store', x: 660, y: 700, c: '#ffd98a' },
   mom: { ic: 'fa-baby-carriage', x: 820, y: 690, c: '#ffc2e0' },
-  sala: { ic: 'fa-briefcase', x: 890, y: 598, c: '#a9d6ff' },
+  sala: { ic: 'fa-briefcase', x: 850, y: 420, c: '#a9d6ff' },
   big: { ic: 'fa-building', x: 1000, y: 462, c: '#b9bfd6' },
-  uni: { ic: 'fa-helmet-safety', x: 1100, y: 690, c: '#ffcf9e' },
+  uni: { ic: 'fa-helmet-safety', x: 990, y: 565, c: '#ffcf9e' },
   young: { ic: 'fa-graduation-cap', x: 1324, y: 462, c: '#c9b8ff' },
   us: { ic: 'fa-flag-usa', x: 1470, y: 630, c: '#a9d6ff' },
   cn: { ic: 'fa-dragon', x: 1460, y: 760, c: '#ffb3a7' },
