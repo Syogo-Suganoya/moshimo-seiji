@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>もしも政治 プロモ reiwa</title>
+<!-- docs/promo/build.py で作る。手で直さない。イラスト：いらすとや（https://www.irasutoya.com/） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&family=Rubik:wght@800&display=swap">
+<style>
+:root{--navy:#1f2244; --cream:#fff5e1; --coral:#ff6b57; --mint:#35cfa1; --mute:#8c8aa6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--navy)}
+body{font-family:"M PLUS Rounded 1c",sans-serif;font-weight:800;color:var(--navy)}
+/* 1コマ = 1280×720（16:9）。#k2 などを付けると、そのコマだけを出す */
+.koma{position:relative;width:1280px;height:720px;padding:22px;background:var(--navy)}
+body:has(.koma:target) .koma:not(:target){display:none}
+.koma > .in{position:relative;height:100%;display:grid;grid-template-columns:1fr 1fr;border:6px solid var(--navy);outline:5px solid var(--cream);border-radius:26px;overflow:hidden}
+.p{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 24px 22px}
+.p + .p{border-left:5px dashed #1f224433}
+.p.up{background:radial-gradient(circle at 50% 115%,#ffffffd9,transparent 60%),#ffe7a6}
+.p.dn{background:radial-gradient(circle at 50% 115%,#ffffffd9,transparent 60%),#cfe6ff}
+.p.zero{background:radial-gradient(circle at 50% 115%,#ffffffd9,transparent 60%),#ece6da}
+.p img{display:block;height:290px;width:auto;object-fit:contain}
+/* 吹き出し */
+.bub{position:relative;margin-bottom:30px;padding:20px 30px;white-space:nowrap;background:#fff;border:5px solid var(--navy);border-radius:30px;box-shadow:0 7px 0 var(--navy);font-size:36px;line-height:1.45}
+.bub::after{content:"";position:absolute;left:50%;bottom:-31px;width:36px;height:36px;background:#fff;border-right:5px solid var(--navy);border-bottom:5px solid var(--navy);transform:translateX(-50%) rotate(45deg) skew(12deg,12deg);border-bottom-right-radius:6px}
+/* 属性名と、ゲームでの支持率の変化 */
+.tag{display:flex;align-items:center;gap:12px;margin-top:10px;padding:5px 8px 5px 22px;border:5px solid var(--navy);border-radius:999px;background:#fff;font-size:30px}
+.tag b{font-family:"Rubik",sans-serif;font-size:28px;padding:0 14px;border-radius:999px;color:#fff;line-height:42px}
+.up .tag b{background:var(--mint)}.dn .tag b{background:var(--coral)}.zero .tag b{background:var(--mute)}
+</style>
+</head>
+<body>
+
+<section class="koma" id="k2">
+  <div class="in">
+    <div class="p up">
+      <div class="bub">10万円！<br>みんなで温泉に行こうか。</div>
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEizq8z9NXOVhHLZvbyZDdhS89-6sLmnDgfktg6sb7fMJ-D6lYp1_YcsYIwonDgZDdBFeYvceh31c7pejqfwVWNQpgl007ZSqdVVOvbeJAqeLnXDVucqVHlyjdoTbq1gNkYbmbvxrEdMR5c/s400/obaasan.png" alt="高齢女性">
+      <span class="tag">高齢女性<b>+7</b></span>
+    </div>
+    <div class="p up">
+      <div class="bub">消費税がなくなるなんて、<br>長生きはするもんだ。</div>
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6mquOnc-1QbT0kZNSkzNvJ03uUjwfxNz1qrKoSNoMveWK6ZiotTzdtVInaZizlaboVYwsZ2hXEovWmAJDipS68U5uEcujsW3pvbnIeIuB8XaKTaRxnM6IW0odN9cYbPl11dTmEsF4iWU/s400/ojiisan.png" alt="高齢男性">
+      <span class="tag">高齢男性<b>+6</b></span>
+    </div>
+  </div>
+</section>
+
+<section class="koma" id="k3">
+  <div class="in">
+    <div class="p up">
+      <div class="bub">10万円と消費税ゼロ、<br>生活がかなり楽になる！</div>
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhpy4Fxva0fi5adGfcsTFDuEtqPpF6hRxpaukSs52ljpHl5TJt-oFpo_03FIaxNGTlYm7-bc5z2Y7DYRViI2gznr7iRLFNo8CcajM0Nf9kGgH5QTvSrsMrcGcc3ConDeQs4L4GoOlM6bhyphenhyphenp/s400/daigakusei_man.png" alt="若年男性">
+      <span class="tag">若年男性<b>+5</b></span>
+    </div>
+    <div class="p up">
+      <div class="bub">毎日の買い物で<br>違いがはっきりわかる。</div>
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgKwLal-TM64ThHpc0A34Klf30tDQpWWwcjsC5cSjO5O22whmA0GP6oXnUT7kV47W_bMRrJRCAmcxPmgs2IUpbzUEXPdOKfEapEEQrGF6qNT_cxnRbOzsGKwsppJOKAWZIIZ6WJfGxv2GI/s400/hahako_girl.png" alt="中年女性">
+      <span class="tag">中年女性<b>+5</b></span>
+    </div>
+  </div>
+</section>
+
+<section class="koma" id="k4">
+  <div class="in">
+    <div class="p zero">
+      <div class="bub">国の借金、大丈夫なのかな。<br>円の値打ちも心配だ。</div>
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjw8lmB2De4b3Z9a5ur2yAmOmvU0uA9WpTVDpgWNWHJmuZgh0Aha2hOjggSUGg8j5dU-qUilx0mUXFxYA4Be1EIccmysic6H91TsmfBc7cQgenfBEk33zaTZHVHWsaLeoH3Brq9HezEM3k/s400/job_businessman.png" alt="中年男性">
+      <span class="tag">中年男性<b>±0</b></span>
+    </div>
+    <div class="p dn">
+      <div class="bub">消費税の廃止は、<br>財政の根幹に関わります。</div>
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjhmGlyd5fHDcjrCkLQsFIV0UXZwAxOS0q3b5qiipCUwtoVfOrKaCNTCVgd9a7MM-coMuNJXT75qeqMM8foskdDofL0qskRfPZ3Nl7ZktNeEKwEETuHe2a9MWfjTUDNRLMQgSZp4kPMl9w/s400/kaisya_desk1_syachou_man.png" alt="大企業">
+      <span class="tag">大企業<b>-8</b></span>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

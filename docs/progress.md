@@ -36,7 +36,8 @@
 | `app/page.tsx` / `components/Game.tsx` | 画面一式。数値はエンジンで確定させ、画面は演出と入力だけ |
 | `app/api/react/route.ts` | `GET`：モード（gemini / mock）を返す。`POST`：自由な表明への反応を返す |
 | `lib/gemini.ts` | Gemini へのプロンプトとJSONスキーマ。結果は `sanitizeFreeform` で範囲に収める |
-| `lib/scene.ts` | 背景7パターンのSVG（モックから移したもの） |
+| `lib/scene.ts` | 背景7パターンの説明文と SVG（SVG はスキル版の view だけで使う） |
+| `public/bg/*.webp` | 背景7パターンの絵（`docs/images/background` の画像を WebP にしたもの） |
 | `lib/ui.ts` | 話者のアイコン・色・街の中の位置、感情のアイコンなど |
 | `.env.local.example` | `GEMINI_API_KEY`、`GEMINI_MODEL`（既定 `gemini-3.5-flash-lite`） |
 
@@ -76,7 +77,7 @@
 - 政策はチャットの自由文で表明する。キーワードで公約データと照合し、合った政策の効果を適用する。照合は、一致したキーワードの長さの合計がいちばん大きい政策。同点なら自民党を優先する。
 - 属性：若者・中年・高齢の男女、大企業、中小企業、農業、労組、米国、中国、諸外国。
 - 支持率の補正（行動経済学・ゲーム理論）：損失回避1.6倍、組織された団体1.3倍、言い回しによる補正、慣れ（上がった分の半分は戻る）、財政のツケ（6で格下げ）、バンドワゴン、信頼（0〜100）、維新との連立（25未満で離脱）、関税の報復合戦、投票率で重み付けした選挙。
-- 背景は7パターン（順調、停滞、荒廃、都市化、地方化、災害、緊張）を状況で差し替える。画像生成プロンプトは [background_prompts.md](background_prompts.md)。
+- 背景は7パターン（順調、停滞、荒廃、都市化、地方化、災害、緊張）を状況で差し替える。Web版は画像生成した絵（`docs/images/background`）を使う。プロンプトは [background_prompts.md](background_prompts.md)。
 - 公約データは2026-09-26時点。第51回衆院選（2026/2/8）の議席数と、中道改革連合の分裂（公明党と民主改革の会）を反映済み。
 
 ## ファイル
@@ -107,4 +108,4 @@ Web版（Docker）：ルートで `docker compose up`（http://localhost:3000）
 
 ## 注意
 - 古いリポジトリ（`2605_hackathon`）の `.claude/launch.json` に、このフォルダの `mock` を指す `moshimo-mock` が仮で入っている。モックは消したので、古いほうも消してよい。
-- 地方化の背景（`web/lib/scene.ts` のSVG）では、ビルが低くなって「経済団体」のアイコンが少し浮いて見える。本番の画像で構図をそろえれば解消する前提。
+- 背景を差し替えるときは `cwebp -q 80 docs/images/background/<名前>.jpeg -o web/public/bg/<名前>.webp`。話者のピンの位置（`web/lib/ui.ts` の `SPK`）は絵の建物に合わせてあるので、構図を変えたら見直す。
