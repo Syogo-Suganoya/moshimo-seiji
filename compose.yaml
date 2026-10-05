@@ -1,4 +1,4 @@
-# 開発環境：docker compose up で http://localhost:3000 が開く
+# 開発環境：docker compose up で http://localhost:3000 が開く（PORT=3010 docker compose up のように、手元のポートを変えられる）
 # Gemini のキーは web/.env.local に置く（マウントしたファイルを Next.js が読む。イメージには入れない）
 services:
   web:
@@ -6,7 +6,7 @@ services:
       context: .
       target: dev
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     volumes:
       - .:/app
       # node_modules と .next はコンテナ側のものを使う（Mac 側と混ぜない）

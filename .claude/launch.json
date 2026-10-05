@@ -10,7 +10,7 @@
         "web"
       ],
       "port": 3000,
-      "autoPort": false
+      "autoPort": true
     }
   ]
 }

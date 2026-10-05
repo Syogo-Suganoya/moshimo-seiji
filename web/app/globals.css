@@ -37,7 +37,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes pop{from{transform:scale(.7);opacity:0}}
 .modal h3{margin:0 0 10px;font-size:22px}
 .modal p{margin:0 0 20px;font-size:13.5px;line-height:1.8;font-weight:500}
-.modal p.right{text-align:right}
+.modal p.left{text-align:left}
 .mk .pin{cursor:pointer}
 .bub.peek .who::after{content:'のいまの気持ち';color:var(--mute)}
 .bub .sup{display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:2px dashed #1f224433;font-size:11px}

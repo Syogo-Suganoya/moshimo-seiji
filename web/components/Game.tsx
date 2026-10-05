@@ -371,21 +371,28 @@ export default function Game() {
   const dissolve = () =>
     !busyRef.current && setModal({
       title: '解散総選挙する？',
-      body: <>いまの内閣支持率は <b>{approval(gameRef.current).toFixed(1)}%</b>。<br />勝てば任期リセット、負ければ即失脚！</>,
+      body: (
+        <>
+          いまの内閣支持率 <b>{approval(gameRef.current).toFixed(1)}%</b> で、すぐに衆院選をおこないます。<br />
+          （解散しなければ、選挙は <b>{gameRef.current.elec}ターン後</b>）<br /><br />
+          与党が過半数（{GAME.election.majority}議席）を取れば、次の選挙は<b>{GAME.election.termTurns / 4}年後（{GAME.election.termTurns}ターン後）</b>に延びます。<br />
+          過半数を割ると<b>失脚</b>です。
+        </>
+      ),
+      align: 'left',
       btns: [['やめる', '', null], ['解散！', 'coral', () => wipe('衆議院', '解散総選挙！', startElection, 1500)]],
     });
 
   const howTo = () =>
     setModal({
       title: '遊び方',
-      align: 'right',
+      align: 'left',
       body: (
         <>
-          政策は自分の言葉で表明しよう。困ったら「政策」ボタンの公約ブックから選んでもOK。<br />
-          街の人や外国がその場で反応して、支持率が動く。<br />
-          人は得より損に敏感で、うれしさには慣れてしまう。約束を守るほど、言葉が信じてもらえる。<br />
-          次々くる危機と陳情に期限内に応えよう。<br />
-          <b>支持率が2ターン連続20%未満／選挙で過半数割れ</b>で失脚！<br />
+          政策は自分の言葉で表明しよう。<br />
+          困ったら「政策」ボタンの公約ブックから選んでもOK。<br /><br />
+          次々くる危機と陳情に、期限内に応えよう。<br />
+          <b>支持率が2ターン連続20%未満／選挙で過半数割れ</b>で失脚！<br /><br />
           <small>これはフィクションのシミュレーションです。公約は実在の政党の要旨ですが、反応や支持率の変化はゲーム用の仮定です。</small>
         </>
       ),
