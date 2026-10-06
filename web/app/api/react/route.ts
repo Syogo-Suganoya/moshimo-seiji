@@ -5,7 +5,7 @@ import { FAC_IDS, type FacId } from '@moshimo/engine';
 import { generateFreeform, hasKey, MODEL } from '@/lib/gemini';
 
 const MAX_TEXT = 200;
-// Vercel の Firewall に作る rate limit ルールの ID（docs/deploy.md）
+// Vercel の Firewall に作る rate limit ルールの ID
 const RATE_LIMIT_ID = process.env.RATE_LIMIT_ID || 'moshimo-react';
 
 export async function GET() {

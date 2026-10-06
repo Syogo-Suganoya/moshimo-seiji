@@ -54,30 +54,6 @@
 
 ![衆院選の結果](docs/images/readme/07_election.png)
 
-## 手元で動かす
-
-必要なもの：Docker（Docker Desktop など）
-
-```bash
-git clone https://github.com/Syogo-Suganoya/moshimo-seiji.git
-cd moshimo-seiji
-docker compose up
-```
-
-http://localhost:3000 を開くと遊べます。
-
-### Gemini を使う（任意）
-
-キーがなくても、公約データのキーワード照合だけで遊べます（モックモード）。公約に当たらない自由な表明にも反応させたいときは、Gemini の API キーを設定します。
-
-```bash
-cp web/.env.local.example web/.env.local
-```
-
-`web/.env.local` の `GEMINI_API_KEY` にキーを入れ、`docker compose up` し直します。モデルは `GEMINI_MODEL` で変えられます（既定は `gemini-3.5-flash-lite`）。
-
-キーはサーバー側（Next.js の API Route）だけで使い、ブラウザには渡しません。Docker のイメージにも入れません。
-
 ## Claude のスキルとして遊ぶ
 
 Claude に進行役をしてもらう版もあります。数値はスキルに入っているコマンド（エンジンを1ファイルにまとめたもの）で計算し、公約に当たらない表明には Claude が反応を作ります。どちらも Node.js 18 以上が動く環境で使えます。
@@ -97,48 +73,8 @@ Claude に進行役をしてもらう版もあります。数値はスキルに�
 
 [Releases](https://github.com/Syogo-Suganoya/moshimo-seiji/releases) から `moshimo-seiji.zip` をダウンロードし、claude.ai の設定にあるスキルの画面からアップロードします。そのあと、チャットで「もしも政治で遊びたい」と話しかけてください。
 
-## よく使うコマンド
-
-| やりたいこと | コマンド |
-|---|---|
-| 起動 | `docker compose up` |
-| テスト | `docker compose exec web npm test` |
-| 型チェック | `docker compose exec web npm run typecheck` |
-| スキル版のビルド | `docker compose exec web ./scripts/build_skill.sh` |
-| 止める | `docker compose down` |
-| README のスクショを撮り直す | 起動したまま `node scripts/readme_shots.mjs http://localhost:3000`（Mac の Chrome を使う） |
-| 依存やキャッシュを作り直す | `docker compose down -v` のあと `docker compose up --build` |
-
-Docker を使わない場合は、Node.js 24 以上でルートの `npm install` のあと `npm run dev` を実行します。
-
-## 構成
-
-![アーキテクチャ図](docs/architecture/architecture.png)
-
-図は [docs/architecture/architecture.py](docs/architecture/architecture.py)（Python の diagrams）から作っています。描き直すときは `docker compose run --rm diagrams` を実行します。
-
-```
-moshimo-seiji/
-  data/        公約・政党・ゲームのパラメータ（JSON）。正本はここだけ
-  engine/      計算ロジック（TypeScript）とテスト
-  web/         Web版（Next.js）。画面と、Gemini を呼ぶ API Route
-  skill/       Claude スキル版。SKILL.md と、エンジンを1ファイルにまとめるビルド
-  docs/        設計書・進捗・画像生成プロンプトなど
-```
-
-- 公約データと計算ロジックは、Web版と Claude スキル版で共有します。
-- 設計の詳しい説明は [docs/design.md](docs/design.md)、進み具合と次にやることは [docs/progress.md](docs/progress.md) にあります。
-
 ## 公約データについて
 
 - 2026年9月26日時点の情報で整理しています。議席は第51回衆院選（2026年2月8日投開票）の結果です。
 - 出典は `data/parties.json` と `data/policies.json` の `sources` にまとめています。
 - タイトルと概要は各党の公約の要旨です。`fx`（属性ごとの支持率の変化）、`cost`、反応のセリフはゲーム用の仮定です。
-
-## 開発に参加する
-
-[CONTRIBUTING.md](CONTRIBUTING.md) を読んでください。公開の手順は [docs/deploy.md](docs/deploy.md) にあります。
-
-## ライセンス
-
-[MIT](LICENSE)。公約データの要旨は各党の公約をもとにしており、出典は `data/*.json` に記載しています。

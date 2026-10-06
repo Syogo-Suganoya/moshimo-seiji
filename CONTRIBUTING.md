@@ -1,21 +1,68 @@
 # 開発への参加
 
-「もしも政治」に手を入れるときの決まりごとです。はじめに [README.md](README.md) で起動できることを確かめ、[docs/design.md](docs/design.md) と [docs/progress.md](docs/progress.md) に目を通してください。
+「もしも政治」に手を入れるときの決まりごとです。はじめに、下の「開発環境」の手順で起動できることを確かめてください。
 
 ## 開発環境
 
-開発環境は Docker でそろえます。
+### 起動する
+
+必要なもの：Docker
 
 ```bash
-docker compose up                             # 開発サーバー（http://localhost:3000）
-docker compose exec web npm test              # テスト
-docker compose exec web npm run typecheck     # 型チェック
+git clone https://github.com/Syogo-Suganoya/moshimo-seiji.git
+cd moshimo-seiji
+docker compose up
 ```
+
+http://localhost:3000 を開くと遊べます。
+
+### Gemini を使う（任意）
+
+キーがなくても、公約データのキーワード照合だけで遊べます（モックモード）。公約に当たらない自由な表明にも反応させたいときは、Gemini の API キーを設定します。
+
+```bash
+cp web/.env.local.example web/.env.local
+```
+
+`web/.env.local` の `GEMINI_API_KEY` にキーを入れ、`docker compose up` し直します。モデルは `GEMINI_MODEL` で変えられます（既定は `gemini-3.5-flash-lite`）。
+
+キーはサーバー側（Next.js の API Route）だけで使い、ブラウザには渡しません。Docker のイメージにも入れません。
+
+### よく使うコマンド
+
+| やりたいこと | コマンド |
+|---|---|
+| 起動 | `docker compose up` |
+| テスト | `docker compose exec web npm test` |
+| 型チェック | `docker compose exec web npm run typecheck` |
+| スキル版のビルド | `docker compose exec web ./scripts/build_skill.sh` |
+| 止める | `docker compose down` |
+| README のスクショを撮り直す | 起動したまま `node scripts/readme_shots.mjs http://localhost:3000`（Mac の Chrome を使う） |
+| 依存やキャッシュを作り直す | `docker compose down -v` のあと `docker compose up --build` |
+
+Docker を使わない場合は、Node.js 24 以上でルートの `npm install` のあと `npm run dev` を実行します。
 
 - ソースはコンテナにマウントされるので、手元で編集すればすぐ反映されます。
 - `node_modules` と `web/.next` は Docker のボリュームに置きます。手元の `node_modules` は使いません。
 - 依存パッケージを足すときは、コンテナの中で入れます（例：`docker compose exec web npm install -w web パッケージ名`）。`package.json` と `package-lock.json` の両方をコミットしてください。
 - 動きがおかしいときは `docker compose down -v` でボリュームを消し、`docker compose up --build` で作り直します。
+
+## 構成
+
+![アーキテクチャ図](docs/architecture/architecture.png)
+
+図は [docs/architecture/architecture.py](docs/architecture/architecture.py)（Python の diagrams）から作っています。描き直すときは `docker compose run --rm diagrams` を実行します。
+
+```
+moshimo-seiji/
+  data/        公約・政党・ゲームのパラメータ（JSON）。正本はここだけ
+  engine/      計算ロジック（TypeScript）とテスト
+  web/         Web版（Next.js）。画面と、Gemini を呼ぶ API Route
+  skill/       Claude スキル版。SKILL.md と、エンジンを1ファイルにまとめるビルド
+  docs/        アーキテクチャ図と README の画像
+```
+
+- 公約データと計算ロジックは、Web版と Claude スキル版で共有します。
 
 ## 設計の原則
 
@@ -37,7 +84,7 @@ docker compose exec web npm run typecheck     # 型チェック
 ### ゲームのバランスを変える（`data/game.json`、`engine/`）
 
 - 係数を変えたら `npm test` を実行します。「何もしないと、ほとんどの場合5年以内に失脚する」というバランスのテストがあります。
-- 意図してバランスを変えるときは、テストの期待値と [docs/design.md](docs/design.md) の説明も合わせて直してください。
+- 意図してバランスを変えるときは、テストの期待値も合わせて直してください。
 
 ### エンジンを直す（`engine/src`）
 
@@ -46,7 +93,7 @@ docker compose exec web npm run typecheck     # 型チェック
 
 ### 画面を直す（`web/`）
 
-- 見た目のルール（色、書体、太い輪郭線、硬い影）は [docs/design.md](docs/design.md) の6節に従います。
+- 見た目は今の画面に合わせます（紺とクリーム色の配色、丸ゴシックの書体、太い輪郭線、硬い影）。
 - PC（1280〜1440px幅）とスマホ（375px幅前後）の両方で確かめてください。
 
 ### 自由な表明への反応の作り方を直す（`engine/src/freeform.ts`、`web/lib/gemini.ts`）
@@ -79,11 +126,10 @@ docker compose exec web npm run typecheck     # 型チェック
 
 ## リリース
 
-スキル版のリリース（バージョンの上げ方、タグ、zip の配布）と Web版の公開は [docs/deploy.md](docs/deploy.md) に従います。
+スキル版のリリース（`v*` のタグを push すると GitHub Actions が zip を作る）と Web版の公開（`main` に push すると Vercel に反映）は、メンテナーが行います。
 
 ## コミットとプルリクエスト
 
 - コミットメッセージは `feat:`、`fix:`、`refactor:`、`docs:`、`test:`、`chore:` などの接頭辞に、日本語で何をしたかを続けます。
   - 例：`feat: 吹き出しに「次へ」ボタンを出して、発言を1人ずつ進める`
 - プルリクエストを出す前に、テストと型チェックが通ること、画面で動きを確かめたことを書いてください。
-- 設計や進み具合が変わったら、[docs/design.md](docs/design.md) と [docs/progress.md](docs/progress.md) も更新してください。

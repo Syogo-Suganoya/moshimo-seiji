@@ -31,7 +31,7 @@ const facAvg = (v: Record<FacId, number>, k: SpeakerId) => {
   const f = GAME.speakers[k].fac;
   return f.length ? Math.round(f.reduce((a, x) => a + v[x], 0) / f.length) : null;
 };
-// 背景の絵（docs/images/background を web/public/bg に WebP で置いたもの）
+// 背景の絵（web/public/bg の WebP）
 const Bg = ({ kind, className, style }: { kind: SceneKind; className?: string; style?: React.CSSProperties }) => (
   <div className={className} style={style}><img src={`/bg/${kind}.webp`} alt="" draggable={false} /></div>
 );

@@ -1,4 +1,4 @@
-// 背景パターン（状況に応じて差し替え）。Web版は docs/images/background の絵（web/public/bg/*.webp）を使い、ここの SVG はスキル版の view だけで使う。プロンプトは docs/background_prompts.md
+// 背景パターン（状況に応じて差し替え）。Web版は web/public/bg/*.webp の絵を使い、ここの SVG はスキル版の view だけで使う
 import type { SceneKind } from '@moshimo/engine';
 
 interface Scene {
