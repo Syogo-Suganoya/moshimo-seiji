@@ -74,6 +74,21 @@
       ]
     }
   },
+  "interview": {
+    "note": "深掘りモード：表明に強く反応した国民が質問し、総理の答え方で支持率と信頼が少し動く",
+    "maxAsk": 3,
+    "maxQuestion": 80,
+    "maxAnswer": 200,
+    "maxReply": 20,
+    "maxReact": 50,
+    "verdicts": {
+      "good": { "fx": 2, "emo": "喜" },
+      "ok": { "fx": 0, "emo": "安" },
+      "evasive": { "fx": -2, "emo": "怒" }
+    },
+    "trust": { "allGood": 1, "anyEvasive": -1 },
+    "skipped": "……答えてもらえないのかい。"
+  },
   "election": {
     "seats": 465,
     "majority": 233,

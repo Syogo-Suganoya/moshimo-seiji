@@ -351,3 +351,30 @@ button{font:inherit;color:inherit;cursor:pointer}
 .bub .bub-next:hover{filter:brightness(1.05)}
 .bub .bub-next:active{transform:translateY(2px);box-shadow:none}
 .endturn:disabled{filter:grayscale(1);opacity:.55;cursor:default}
+
+/* 深掘りモード：国民の質問カード（入力欄のすぐ上） */
+.tools .btn.deep.on{background:var(--mint)}
+.ask{position:fixed;left:50%;bottom:108px;transform:translateX(-50%);z-index:31;width:min(640px,calc(100vw - 260px));padding:10px 14px;animation:askin .35s cubic-bezier(.2,1.5,.4,1)}
+@keyframes askin{from{opacity:0;transform:translate(-50%,10px) scale(.95)}}
+.ask small{display:inline-flex;align-items:center;gap:6px;font-size:11px;background:var(--navy);color:var(--cream);padding:1px 10px;border-radius:999px}
+.ask p{margin:6px 0 8px;font-size:15px;line-height:1.5}
+.ask .replies{display:flex;flex-wrap:wrap;gap:6px}
+.ask .replies .btn{padding:6px 12px;font-size:12.5px;box-shadow:0 3px 0 var(--navy)}
+.ask .replies .skip{background:#fff;color:var(--mute);margin-left:auto;gap:6px}
+@media (max-width:760px){
+  .ask{width:calc(100vw - 16px);bottom:170px;padding:8px 12px}.ask p{font-size:13.5px}
+  .ask .replies .skip{margin-left:0}
+}
+
+/* ホバーで出る説明の吹き出し（data-tip の文を出す）。既定は上に、.down は下に出す */
+.tip{position:relative}
+span.tip{display:inline-flex}
+.tip::after,.tip::before{position:absolute;opacity:0;pointer-events:none;transition:opacity .15s,transform .15s;z-index:60}
+.tip::after{content:attr(data-tip);left:0;bottom:calc(100% + 12px);transform:translateY(4px);width:max-content;max-width:240px;padding:8px 12px;background:var(--navy);color:var(--cream);border-radius:10px;font-size:12px;font-weight:700;line-height:1.55;letter-spacing:0;text-align:left;white-space:normal;box-shadow:0 4px 0 #1f224455}
+.tip::before{content:'';left:20px;bottom:calc(100% + 4px);border:8px solid transparent;border-bottom:none;border-top-color:var(--navy);transform:translateY(4px)}
+.tip:hover::after,.tip:hover::before{opacity:1;transform:none}
+.tip.down::after{bottom:auto;top:calc(100% + 16px);left:auto;right:-14px}
+.tip.down::before{bottom:auto;top:calc(100% + 8px);left:auto;right:20px;border:8px solid transparent;border-top:none;border-bottom-color:var(--navy)}
+/* 吹き出しがとなりのパネル（反応モードの表示など）の下に隠れないよう、ホバー中は前に出す */
+.hud:has(.tip:hover),.tools:has(.tip:hover){z-index:46}
+@media (hover:none){.tip::after,.tip::before{display:none}}

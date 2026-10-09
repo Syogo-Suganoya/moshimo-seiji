@@ -1,7 +1,7 @@
 import gameJson from '../../data/game.json';
 import partiesJson from '../../data/parties.json';
 import policiesJson from '../../data/policies.json';
-import type { DomesticId, Emotion, FacId, ForeignId, Fx, Party, Policy, PolicyData, QuestData, Reaction, SpeakerId } from './types';
+import type { DomesticId, Emotion, FacId, ForeignId, Fx, Party, Policy, PolicyData, QuestData, Reaction, SpeakerId, Verdict } from './types';
 
 export const GAME = gameJson as unknown as {
   start: { year: number; quarter: number; firstElectionNo: number; cabinetNo: number };
@@ -38,6 +38,16 @@ export const GAME = gameJson as unknown as {
     promiseBonus: number;
     urban: { min: number; max: number; cats: Record<string, number>; patterns: { pattern: string; shift: number }[] };
     retaliation: { pattern: string; quests: string[]; next: string; trust: number; reactions: Reaction[] };
+  };
+  interview: {
+    maxAsk: number;
+    maxQuestion: number;
+    maxAnswer: number;
+    maxReply: number;
+    maxReact: number;
+    verdicts: Record<Verdict, { fx: number; emo: Emotion }>;
+    trust: { allGood: number; anyEvasive: number };
+    skipped: string;
   };
   election: {
     seats: number; majority: number; termTurns: number; firstTermTurns: number;

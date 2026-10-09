@@ -5,7 +5,8 @@ import {
   DOMESTIC, FAC_IDS, FOREIGN, GAME, OTHER_POLICIES, PARTIES, PARTY, POLICIES, QUEST, QUESTS,
 } from './data';
 import type {
-  ActiveQuest, DeclareResult, FacId, Fx, GameState, Line, Policy, Reaction, SceneKind,
+  ActiveQuest, DeclareResult, Emotion, FacId, Fx, GameState, InterviewJudgement, InterviewQuestion, Line, Policy,
+  Reaction, SceneKind, SpeakerId, Verdict,
 } from './types';
 
 const clamp = (v: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
@@ -273,6 +274,87 @@ export function declare(
   if (!hit) s.lastNews = '首相、危機対応を表明';
   const lines: Line[] = pending.map((r) => ({ ...r, fx: applyFx(s, r.fx, text) }));
   return { state: s, result: { lines, notes, policy, rejected: false } };
+}
+
+// ================= 深掘りモード =================
+// 表明に強く反応した国民（支持率を持つ話者）を最大 maxAsk 人選ぶ。
+// 反応の大きい順に選び、反対した人が入っていなければ、いちばん強く反対した人を最後の枠に入れる
+export function pickInterviewees(lines: Line[]): SpeakerId[] {
+  const sum = new Map<SpeakerId, number>();
+  for (const l of lines) {
+    if (!GAME.speakers[l.who]?.fac.length) continue;
+    const d = Object.values(l.fx).reduce((a, x) => a + (x ?? 0), 0);
+    if (d) sum.set(l.who, (sum.get(l.who) ?? 0) + d);
+  }
+  const all = [...sum].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  const picked = all.slice(0, GAME.interview.maxAsk);
+  const neg = all.find(([, d]) => d < 0);
+  if (neg && !picked.some(([, d]) => d < 0)) picked[Math.min(picked.length, GAME.interview.maxAsk) - 1] = neg;
+  return picked.map(([k]) => k);
+}
+
+// LLM が作った質問を、選んだ人の分だけ・決めた長さに収める
+export function sanitizeQuestions(raw: unknown, who: SpeakerId[]): InterviewQuestion[] {
+  const I = GAME.interview;
+  const list = Array.isArray(raw) ? raw : [];
+  const out: InterviewQuestion[] = [];
+  for (const q of list) {
+    const k = q?.who as SpeakerId;
+    if (!who.includes(k) || out.some((x) => x.who === k) || !q?.text) continue;
+    const replies = (Array.isArray(q.replies) ? q.replies : [])
+      .filter((r: unknown) => typeof r === 'string' && r.trim())
+      .slice(0, 3)
+      .map((r: string) => r.trim().slice(0, I.maxReply));
+    out.push({ who: k, text: String(q.text).slice(0, I.maxQuestion), replies });
+  }
+  return out;
+}
+
+// 長すぎるセリフは、収まる範囲の最後の文末で切る（文末がなければそのまま切る）
+function clip(text: string, n: number): string {
+  if (text.length <= n) return text;
+  const cut = text.slice(0, n);
+  const end = Math.max(...['。', '！', '？', '!', '?'].map((c) => cut.lastIndexOf(c)));
+  return end > 0 ? cut.slice(0, end + 1) : cut;
+}
+
+// LLM の判定を、質問した人の分だけ・決めた値に収める
+export function sanitizeJudgements(raw: unknown, who: SpeakerId[]): InterviewJudgement[] {
+  const I = GAME.interview;
+  const list = Array.isArray(raw) ? raw : [];
+  const out: InterviewJudgement[] = [];
+  for (const j of list) {
+    const k = j?.who as SpeakerId;
+    if (!who.includes(k) || out.some((x) => x.who === k)) continue;
+    const verdict: Verdict = j.verdict in I.verdicts ? j.verdict : 'ok';
+    const emo: Emotion = GAME.emotions.includes(j.emo) ? j.emo : I.verdicts[verdict].emo;
+    out.push({ who: k, verdict, emo, text: clip(String(j.text || '……なるほど。'), I.maxReact) });
+  }
+  return out;
+}
+
+// 答えなかった質問の判定（LLM を使わない）
+export function skippedJudgement(who: SpeakerId): InterviewJudgement {
+  return { who, verdict: 'evasive', emo: GAME.interview.verdicts.evasive.emo, text: GAME.interview.skipped };
+}
+
+// 答え方の判定を支持率と信頼に反映する。値の大きさは data/game.json の interview で決め、LLM には決めさせない
+export function applyInterview(s0: GameState, judgements: InterviewJudgement[]): { state: GameState; lines: Line[]; notes: string[] } {
+  const s = copy(s0);
+  const I = GAME.interview;
+  const notes: string[] = [];
+  const lines: Line[] = [];
+  for (const j of judgements) {
+    const fac = GAME.speakers[j.who]?.fac ?? [];
+    const d = I.verdicts[j.verdict].fx;
+    const raw: Fx = d ? Object.fromEntries(fac.map((f) => [f, d])) : {};
+    lines.push({ who: j.who, emo: j.emo, text: j.text, fx: applyFx(s, raw) });
+  }
+  if (judgements.length) {
+    if (judgements.every((j) => j.verdict === 'good')) trustDelta(s, I.trust.allGood, notes, '質問に正面から答えた');
+    else if (judgements.some((j) => j.verdict === 'evasive')) trustDelta(s, I.trust.anyEvasive, notes, '質問をはぐらかした');
+  }
+  return { state: s, lines, notes };
 }
 
 // ================= 危機・陳情 =================

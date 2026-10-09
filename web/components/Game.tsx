@@ -3,11 +3,12 @@
 // 数値はすべて @moshimo/engine で確定させ、この画面は演出と入力だけを受け持つ
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  DOMESTIC, FOREIGN, GAME, PARTIES, PARTY, POLICIES, POLICY_DATA, QUEST,
-  approval, approvalOf, declare, endQuarter, expiredLines, matchPolicy, news, newGame, pickScene,
-  quarterLabel, respondQuest, runElection, sanitizeFreeform, summary, tenure, transformFx,
-  type ElectionResult, type Emotion, type FacId, type Fx, type GameState, type Line, type Policy,
-  type SceneKind, type SpeakerId,
+  DOMESTIC, FOREIGN, FREEFORM_LIMITS, GAME, PARTIES, PARTY, POLICIES, POLICY_DATA, QUEST,
+  applyInterview, approval, approvalOf, declare, endQuarter, expiredLines, matchPolicy, news, newGame, pickInterviewees,
+  pickScene, quarterLabel, respondQuest, runElection, sanitizeFreeform, sanitizeJudgements, sanitizeQuestions, skippedJudgement,
+  summary, tenure, transformFx,
+  type ElectionResult, type Emotion, type FacId, type Fx, type GameState, type InterviewJudgement, type InterviewQuestion,
+  type Line, type Policy, type SceneKind, type SpeakerId,
 } from '@moshimo/engine';
 import { SCENES } from '@/lib/scene';
 import { EMO, FN, ME, SPEAKER_IDS, SPK, moodCol, moodIc, role, store, wait } from '@/lib/ui';
@@ -26,6 +27,7 @@ interface Records { best: number; maxAppr: number; plays: number }
 
 const SAVE_KEY = 'moshimo_game';
 const REC_KEY = 'moshimo_rec';
+const DEEP_KEY = 'moshimo_deep';
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
 const facAvg = (v: Record<FacId, number>, k: SpeakerId) => {
   const f = GAME.speakers[k].fac;
@@ -55,7 +57,11 @@ export default function Game() {
   const advanceRef = useRef<(() => void) | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
-  const [thinking, setThinking] = useState(false);
+  const [thinking, setThinking] = useState<string | null>(null);
+  // 深掘りモード：表明のあとに国民が質問してくる。asking は答えを待っている質問、answerRef はその答えを渡す先
+  const [deep, setDeep] = useState(false);
+  const [asking, setAsking] = useState<(InterviewQuestion & { i: number; n: number }) | null>(null);
+  const answerRef = useRef<((a: string | null) => void) | null>(null);
   const [input, setInput] = useState('');
   const [stmt, setStmt] = useState<{ text: string; n: number } | null>(null);
   const [logOpen, setLogOpen] = useState(false);
@@ -83,6 +89,7 @@ export default function Game() {
     setRecords(store.get<Records>(REC_KEY, { best: 0, maxAppr: 0, plays: 0 }));
     const g = store.get<GameState | null>(SAVE_KEY, null);
     if (g && g.version === 1 && !g.over) setSaved(g);
+    setDeep(store.get<boolean>(DEEP_KEY, false));
     fetch('/api/react').then((r) => r.json()).then((j) => setMode(j.mode)).catch(() => setMode('mock'));
   }, []);
 
@@ -116,21 +123,24 @@ export default function Game() {
   }, []);
 
   // 1人分の発言を吹き出しに出し、「次へ」が押されるまで待つ。吹き出しは同時に1つだけ出す
+  // 話している人が画面外なら、そこまでスクロール
+  const scrollToSpeaker = useCallback((k: SpeakerId) => {
+    const w = worldRef.current, st = stageRef.current;
+    if (!w || !st) return;
+    const mx = (SPK[k].x / 1600) * st.offsetWidth;
+    if (mx < w.scrollLeft + 100 || mx > w.scrollLeft + w.clientWidth - 100) w.scrollTo({ left: mx - w.clientWidth / 2, behavior: 'smooth' });
+  }, []);
+
   const speak = useCallback(async (k: SpeakerId, text: string, emo?: Emotion, fx: Fx = {}, last = true) => {
     const n = Date.now() + Math.random();
     setBubbles({ [k]: { text, emo, n, step: last ? 'last' : 'next' } });
     const d = Object.values(fx).reduce((a, v) => a + (v ?? 0), 0);
     if (d) setFnums((f) => ({ ...f, [k]: { d, n } }));
-    // 話している人が画面外なら、そこまでスクロール
-    const w = worldRef.current, st = stageRef.current;
-    if (w && st) {
-      const mx = (SPK[k].x / 1600) * st.offsetWidth;
-      if (mx < w.scrollLeft + 100 || mx > w.scrollLeft + w.clientWidth - 100) w.scrollTo({ left: mx - w.clientWidth / 2, behavior: 'smooth' });
-    }
+    scrollToSpeaker(k);
     addLog({ kind: 'spk', who: k, emo, text, fx });
     await new Promise<void>((res) => { advanceRef.current = res; });
     setBubbles((b) => (b[k]?.n === n ? {} : b));
-  }, [addLog]);
+  }, [addLog, scrollToSpeaker]);
 
   const advance = useCallback(() => {
     const f = advanceRef.current;
@@ -221,6 +231,8 @@ export default function Game() {
   const say = () => {
     const text = input.trim();
     if (!text) return;
+    // 質問に答えているところなら、表明ではなく答えとして渡す
+    if (answerRef.current) return answer(text);
     return withBusy(async () => {
       setInput('');
       const sn = Date.now();
@@ -231,7 +243,7 @@ export default function Game() {
       let freeform: Policy | undefined;
       // 公約に当たらない表明だけ Gemini に反応を作らせる
       if (mode === 'gemini' && !matchPolicy(text) && g.capital >= 1) {
-        setThinking(true);
+        setThinking('街の声を集めています…');
         try {
           const r = await fetch('/api/react', {
             method: 'POST',
@@ -244,7 +256,7 @@ export default function Game() {
         } catch {
           // 失敗したらキーワード方式だけで続ける
         } finally {
-          setThinking(false);
+          setThinking(null);
         }
       }
       const { state, result } = declare(gameRef.current, text, { freeform });
@@ -255,7 +267,76 @@ export default function Game() {
         setTimeout(() => showToast(sup.includes('ldp') ? `${names} の公約に沿った表明` : `${names} の公約と同じ方向！野党が賛同`, 2600), 400);
       }
       await react(result.lines, state);
+      if (deep && mode === 'gemini' && result.policy && !result.rejected) await interview(text, result.lines);
     });
+  };
+
+  // ================= 深掘りモード =================
+  const postInterview = async (body: object) => {
+    const r = await fetch('/api/interview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    if (r.status === 429) showToast('街の声が混み合っています。少し待ってから、もう一度どうぞ', 3000);
+    if (!r.ok) throw new Error(`interview ${r.status}`);
+    return r.json();
+  };
+
+  const answer = (a: string | null) => {
+    const f = answerRef.current;
+    if (!f) return;
+    answerRef.current = null;
+    setInput('');
+    f(a);
+  };
+
+  // 強く反応した国民が1問ずつ質問し、総理の答え方の判定を支持率と信頼に反映する
+  const interview = async (text: string, lines: Line[]) => {
+    const who = pickInterviewees(lines);
+    if (!who.length) return;
+    let questions: InterviewQuestion[] = [];
+    setThinking('国民が質問を考えています…');
+    try {
+      const j = await postInterview({ phase: 'ask', text, who, lines: lines.map((l) => ({ who: l.who, text: l.text })) });
+      questions = sanitizeQuestions(j.questions, who);
+    } catch {
+      // 質問を作れなければ、深掘りなしで続ける
+    } finally {
+      setThinking(null);
+    }
+    if (!questions.length) return;
+    sys(`深掘り：${questions.map((q) => role(q.who)).join('・')}が質問します`);
+    const qa: { who: SpeakerId; q: string; a: string | null }[] = [];
+    for (const [i, q] of questions.entries()) {
+      setBubbles({ [q.who]: { text: q.text, emo: '疑', n: Date.now() } });
+      scrollToSpeaker(q.who);
+      addLog({ kind: 'spk', who: q.who, emo: '疑', text: q.text, fx: {} });
+      setAsking({ ...q, i: i + 1, n: questions.length });
+      requestAnimationFrame(() => chatRef.current?.focus());
+      const a = await new Promise<string | null>((res) => { answerRef.current = res; });
+      setAsking(null);
+      setBubbles({});
+      if (a) addLog({ kind: 'me', text: a });
+      qa.push({ who: q.who, q: q.text, a });
+      await wait(300);
+    }
+    // 答えた分だけ判定させ、答えなかった分はエンジンが決める
+    const answered = qa.filter((x) => x.a);
+    let judged: InterviewJudgement[] = [];
+    if (answered.length) {
+      setThinking('答えを聞いて考えています…');
+      try {
+        const j = await postInterview({ phase: 'judge', text, qa: answered });
+        judged = sanitizeJudgements(j.judgements, answered.map((x) => x.who));
+      } catch {
+        // 判定できなければ、どちらとも言えない扱い（支持率は動かない）
+      } finally {
+        setThinking(null);
+      }
+    }
+    const judgements = qa.map((x) => (!x.a
+      ? skippedJudgement(x.who)
+      : judged.find((j) => j.who === x.who) ?? { who: x.who, verdict: 'ok' as const, emo: GAME.interview.verdicts.ok.emo, text: '……なるほど。' }));
+    const { state, lines: out, notes } = applyInterview(gameRef.current, judgements);
+    notes.forEach(sys);
+    await react(out, state);
   };
 
   const answerQuest = (id: string, accept: boolean) => withBusy(async () => {
@@ -390,7 +471,8 @@ export default function Game() {
       body: (
         <>
           政策は自分の言葉で表明しよう。<br />
-          困ったら「政策」ボタンの公約ブックから選んでもOK。<br /><br />
+          困ったら「政策」ボタンの公約ブックから選んでもOK。<br />
+          「深掘り」をONにすると、国民が質問してくる。具体的に答えよう。<br /><br />
           次々くる危機と陳情に、期限内に応えよう。<br />
           <b>支持率が2ターン連続20%未満／選挙で過半数割れ</b>で失脚！<br /><br />
           <small>これはフィクションのシミュレーションです。公約は実在の政党の要旨ですが、反応や支持率の変化はゲーム用の仮定です。</small>
@@ -526,7 +608,7 @@ export default function Game() {
               </div>
             </div>
             <div className="res panel">
-              <div><span className="lb">政治資本</span><div className="bolts">{Array.from({ length: GAME.quarter.capital.max }, (_, i) => <i key={i} className={`fa-solid fa-bolt ${i < game.capital ? 'on' : ''}`} />)}</div></div>
+              <div className="tip down" data-tip={`政策を表明すると減る（公約によって1〜${FREEFORM_LIMITS.maxCost}）。ターンごとに${GAME.quarter.capital.gainLow}、支持率${GAME.quarter.capital.highAbove}%超なら${GAME.quarter.capital.gainHigh}回復（最大${GAME.quarter.capital.max}）。選挙に勝つと満タン`}><span className="lb">政治資本</span><div className="bolts">{Array.from({ length: GAME.quarter.capital.max }, (_, i) => <i key={i} className={`fa-solid fa-bolt ${i < game.capital ? 'on' : ''}`} />)}</div></div>
               <div><span className="lb">選挙まで</span><span className="v num">{game.elec}</span></div>
             </div>
           </div>
@@ -569,11 +651,31 @@ export default function Game() {
           <div className={`stmt panel ${stmt ? 'on' : ''}`}>
             <small><i className="fa-solid fa-microphone-lines" />総理会見</small><p>{stmt?.text}</p>
           </div>
-          {thinking && <div className="thinking panel"><i className="fa-solid fa-spinner" />街の声を集めています…</div>}
+          {thinking && <div className="thinking panel"><i className="fa-solid fa-spinner" />{thinking}</div>}
+          {asking && (
+            <div className="ask panel">
+              <small><i className="fa-solid fa-person-circle-question" />深掘り {asking.i}/{asking.n}・{role(asking.who)}</small>
+              <p>{asking.text}</p>
+              <div className="replies">
+                {asking.replies.map((r) => <button key={r} className="btn" onClick={() => answer(r)}>{r}</button>)}
+                <button className="btn skip" onClick={() => answer(null)}>答えずに次へ<i className="fa-solid fa-forward" /></button>
+              </div>
+            </div>
+          )}
 
           <div className="tools">
             <button className="btn" onClick={() => setLogOpen((x) => !x)}><i className="fa-solid fa-comments" />ログ</button>
-            <button className="btn" disabled={busy} onClick={dissolve}><i className="fa-solid fa-check-to-slot" />解散</button>
+            {/* 押せないときもホバーで説明が出るよう、吹き出しはボタンを包む span に付ける */}
+            <span className="tip" data-tip="すぐに衆院選をおこなう。与党が過半数を取れば次の選挙まで任期が延び、割ると失脚">
+              <button className="btn" disabled={busy} onClick={dissolve}><i className="fa-solid fa-check-to-slot" />解散</button>
+            </span>
+            <span className="tip" data-tip={`ONにすると、表明のあと強く反応した国民が質問してくる。具体的に答えると支持率と信頼が少し上がり、はぐらかすと下がる${mode === 'gemini' ? '' : '（Gemini を使うときだけ遊べます）'}`}>
+              <button
+                className={`btn deep ${deep && mode === 'gemini' ? 'on' : ''}`}
+                disabled={busy || mode !== 'gemini'}
+                onClick={() => { store.set(DEEP_KEY, !deep); setDeep(!deep); }}
+              ><i className="fa-solid fa-person-circle-question" />深掘り{deep && mode === 'gemini' ? 'ON' : 'OFF'}</button>
+            </span>
           </div>
           <div className="dock panel">
             <div className="row">
@@ -586,9 +688,11 @@ export default function Game() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); say(); }
                 }}
-                placeholder="総理として、政策を自分の言葉で表明しよう"
+                placeholder={asking ? '質問に答えよう（候補からでもOK）' : '総理として、政策を自分の言葉で表明しよう'}
               />
-              <button className="btn sun say" disabled={busy} onClick={say}>表明<small><i className="fa-solid fa-bolt" />×1</small></button>
+              {asking
+                ? <button className="btn sun say" onClick={say}>答える</button>
+                : <button className="btn sun say" disabled={busy} onClick={say}>表明<small><i className="fa-solid fa-bolt" />×1</small></button>}
             </div>
           </div>
           <button className="endturn" disabled={busy} onClick={endTurn}><i className="fa-solid fa-forward" />ターン<br />終了</button>

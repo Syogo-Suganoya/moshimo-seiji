@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  approval, declare, endQuarter, matchPolicy, newGame, quarterLabel, respondQuest, runElection,
-  sanitizeFreeform, summary, transformFx, POLICIES, type GameState,
+  applyInterview, approval, declare, endQuarter, matchPolicy, newGame, pickInterviewees, quarterLabel, respondQuest,
+  runElection, sanitizeFreeform, sanitizeJudgements, sanitizeQuestions, skippedJudgement, summary, transformFx, POLICIES,
+  type GameState, type Line,
 } from '../src';
 
 describe('初期状態', () => {
@@ -204,5 +205,51 @@ describe('バランス', () => {
     }
     const within5y = tenures.filter((t) => t <= 20).length / tenures.length;
     expect(within5y).toBeGreaterThan(0.9);
+  });
+});
+
+describe('深掘りモード', () => {
+  const line = (who: Line['who'], fx: Line['fx']): Line => ({ who, emo: '安', text: '', fx });
+  it('反応の大きい人から最大3人、反対した人を必ず入れる', () => {
+    const lines = [line('old', { oM: 6, oF: 6 }), line('young', { yM: 5 }), line('mom', { mF: 4 }), line('big', { big: -2 }), line('cab', {})];
+    expect(pickInterviewees(lines)).toEqual(['old', 'young', 'big']);
+  });
+  it('支持率を持たない話者は選ばない', () => {
+    expect(pickInterviewees([line('cab', {}), line('press', {})])).toEqual([]);
+  });
+  it('質問は選んだ人だけ・1人1問・長さを収める', () => {
+    const q = sanitizeQuestions([
+      { who: 'old', text: 'あ'.repeat(200), replies: ['い'.repeat(50), '', 'う', 'え', 'お'] },
+      { who: 'old', text: '二問目', replies: [] },
+      { who: 'big', text: '選ばれていない', replies: [] },
+    ], ['old']);
+    expect(q).toHaveLength(1);
+    expect(q[0].text.length).toBe(80);
+    expect(q[0].replies).toEqual(['い'.repeat(20), 'う', 'え']);
+  });
+  it('判定の区分が不正なら ok にする', () => {
+    const j = sanitizeJudgements([{ who: 'old', verdict: '満点', emo: '?', text: 'ふむ' }], ['old']);
+    expect(j[0]).toMatchObject({ verdict: 'ok', emo: '安' });
+  });
+  it('長い反応は収まる範囲の文末で切る', () => {
+    const j = sanitizeJudgements([{ who: 'old', verdict: 'good', emo: '喜', text: 'あ'.repeat(30) + '。' + 'い'.repeat(40) }], ['old']);
+    expect(j[0].text).toBe('あ'.repeat(30) + '。');
+  });
+  it('正面から答えれば支持率と信頼が上がる', () => {
+    const s0 = newGame(1);
+    const { state, lines } = applyInterview(s0, [{ who: 'old', verdict: 'good', emo: '喜', text: 'なるほど' }]);
+    expect(state.v.oM).toBeGreaterThan(s0.v.oM);
+    expect(state.trust).toBe(s0.trust + 1);
+    expect(lines[0].fx.oM).toBeGreaterThan(0);
+  });
+  it('はぐらかすと支持率と信頼が下がる', () => {
+    const s0 = newGame(1);
+    const { state, notes } = applyInterview(s0, [
+      { who: 'old', verdict: 'good', emo: '喜', text: '' },
+      skippedJudgement('young'),
+    ]);
+    expect(state.v.yM).toBeLessThan(s0.v.yM);
+    expect(state.trust).toBe(s0.trust - 1);
+    expect(notes.join()).toContain('はぐらかした');
   });
 });

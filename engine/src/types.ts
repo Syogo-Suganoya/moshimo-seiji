@@ -124,6 +124,23 @@ export interface Line {
   fx: Fx;
 }
 
+// 深掘りモード：総理の答え方の判定（good=正面から具体的に、ok=方向は答えた、evasive=はぐらかした・答えなかった）
+export type Verdict = 'good' | 'ok' | 'evasive';
+
+export interface InterviewQuestion {
+  who: SpeakerId;
+  text: string;
+  // 答えの候補（ボタンで選べる）
+  replies: string[];
+}
+
+export interface InterviewJudgement {
+  who: SpeakerId;
+  verdict: Verdict;
+  emo: Emotion;
+  text: string;
+}
+
 export interface DeclareResult {
   lines: Line[];
   // 信頼の増減や公約の一致など、システムからのお知らせ
